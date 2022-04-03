@@ -17,6 +17,37 @@
 # define BENCH_MS 2000
 #endif
 
+// if no test is selected then we run everything
+#if !defined(SUMA_EST_FIL) && \
+    !defined(SUMA_EST_COL) && \
+    !defined(SUMA_FIL) && \
+    !defined(SUMA_COL) && \
+    !defined(SUMA_RAND) && \
+    !defined(MULT_SIMPLE) && \
+    !defined(MULT_FILA) && \
+    !defined(MULT_BL_SIMPLE) && \
+    !defined(MULT_BL_FILA)
+#define SUMA_EST_FIL
+#define SUMA_EST_COL
+#define SUMA_FIL
+#define SUMA_COL
+#define SUMA_RAND
+#define MULT_SIMPLE
+#define MULT_FILA
+#define MULT_BL_SIMPLE
+#define MULT_BL_FILA
+#endif
+
+#if defined(SUMA_FIL) || \
+    defined(SUMA_COL) || \
+    defined(SUMA_RAND) || \
+    defined(MULT_SIMPLE) || \
+    defined(MULT_FILA) || \
+    defined (MULT_BL_SIMPLE) || \
+    defined(MULT_BL_FILA)
+#define USE_DYNAMIC_MATRICES
+#endif
+
 #define BENCH_RUN(name, fn) do { \
     int acc = 0; /* so function is not optimized away */ \
     size_t iterations = 20; \
@@ -71,24 +102,25 @@ void random_vector(VALT* a, size_t n) {
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc __attribute__((unused)),
+         char* argv[] __attribute__((unused))) {
     srand(35141);
 
+#ifdef USE_DYNAMIC_MATRICES
     if (argc < 2) {
         printf("El programa recibe n, y nb: n es la dimensión de las matrices y nb es el tamaño de bloque\n");
         exit(1);
     }
-
     int n = atoi(argv[1]);
     int nb = atoi(argv[2]);
-    const char *test = argc > 2 ? argv[3] : NULL;
+    (void)nb; // hack to disable "unused variable" warning
 
     VALT* A = (VALT*)aligned_alloc(64, n * n * sizeof(VALT));
     VALT* B = (VALT*)aligned_alloc(64, n * n * sizeof(VALT));
     VALT* C = (VALT*)aligned_alloc(64, n * n * sizeof(VALT));
-
     random_vector(A, n * n);
     random_vector(B, n * n);
+#endif
 
     VALT A_est[N][N];
 
@@ -96,37 +128,39 @@ int main(int argc, char* argv[]) {
         for (int j = 0; j < N; ++j)
             A_est[i][j] = (VALT)rand();
 
-    if (!test || strstr(test, "suma_est_fil")) {
+#ifdef SUMA_EST_FIL
         BENCH_RUN("suma_est_fil", suma_est_fil(A_est));
-    }
-    if (!test || strstr(test, "suma_est_col")) {
+#endif
+#ifdef SUMA_EST_COL
         BENCH_RUN("suma_est_col", suma_est_col(A_est));
-    }
-    if (!test || strstr(test, "suma_fil")) {
+#endif
+#ifdef SUMA_FIL
         BENCH_RUN("suma_fil", suma_fil(A, n));
-    }
-    if (!test || strstr(test, "suma_col")) {
+#endif
+#ifdef SUMA_COL
         BENCH_RUN("suma_col", suma_col(A, n));
-    }
-    if (!test || strstr(test, "suma_rand")) {
+#endif
+#ifdef SUMA_RAND
         BENCH_RUN("suma_rand", suma_rand(A, n));
-    }
-    if (!test || strstr(test, "mult_simple")) {
+#endif
+#ifdef MULT_SIMPLE
         BENCH_RUN("mult_simple", mult_simple(A, B, C, n));
-    }
-    if (!test || strstr(test, "mult_fila")) {
+#endif
+#ifdef MULT_FILA
         BENCH_RUN("mult_fila", mult_fila(A, B, C, n));
-    }
-    if (!test || strstr(test, "mult_bl_simple")) {
+#endif
+#ifdef MULT_BL_SIMPLE
         BENCH_RUN("mult_bl_simple", mult_bl_simple(A, B, C, n, nb));
-    }
-    if (!test || strstr(test, "mult_bl_fila")) {
+#endif
+#ifdef MULT_BL_FILA
         BENCH_RUN("mult_bl_fila", mult_bl_fila(A, B, C, n, nb));
-    }
+#endif
 
+#ifdef USE_DYNAMIC_MATRICES
     free(A);
     free(B);
     free(C);
+#endif
 
     return 0;
 }

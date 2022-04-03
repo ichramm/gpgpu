@@ -17,8 +17,8 @@ ifeq (Debug, $(findstring Debug,$(Target)))
 	CFLAGS   :=$(CFLAGS) -g3
 	CXXFLAGS :=$(CXXFLAGS) -g3
 else
-	CFLAGS   :=$(CFLAGS) -O3 -march=native -mtune=native -funroll-loops
-	CXXFLAGS :=$(CXXFLAGS) -O3 -march=native -mtune=native -funroll-loops
+	CFLAGS   :=$(CFLAGS) -O3 -g -march=native -mtune=native -funroll-loops
+	CXXFLAGS :=$(CXXFLAGS) -O3 -g -march=native -mtune=native -funroll-loops
 endif
 
 ROOT_DIR   =.
