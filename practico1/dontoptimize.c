@@ -1,0 +1,4 @@
+
+void dont_optimize() {
+
+}

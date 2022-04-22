@@ -1,0 +1,100 @@
+● ± |master U:1 ?:18 ✗| → 
+
+2022-04-03 21:36:24 hypernova in ~/devel/fing/gpgpu
+● ± |master U:1 ?:18 ✗| → 
+
+2022-04-03 21:36:24 hypernova in ~/devel/fing/gpgpu
+● ± |master U:1 ?:18 ✗| → ./test_mul.sh 
+Running MULT_SIMPLE with N=32, BL=NaN
+ > total_duration_ms: 1911.562988 ms, average_duration_ms: 0.01834 ms
+Running MULT_FILA with N=32, BL=NaN
+ > total_duration_ms: 2117.811035 ms, average_duration_ms: 0.00448 ms
+Running MULT_BL_SIMPLE with N=32, BL=16
+ > total_duration_ms: 2209.576904 ms, average_duration_ms: 0.01637 ms
+Running MULT_BL_FILA with N=32, BL=16
+ > total_duration_ms: 2090.826904 ms, average_duration_ms: 0.00617 ms
+Running MULT_BL_SIMPLE with N=32, BL=32
+ > total_duration_ms: 2167.460938 ms, average_duration_ms: 0.01989 ms
+Running MULT_BL_FILA with N=32, BL=32
+ > total_duration_ms: 2430.159912 ms, average_duration_ms: 0.00531 ms
+Running MULT_SIMPLE with N=64, BL=NaN
+ > total_duration_ms: 2114.179932 ms, average_duration_ms: 0.16380 ms
+Running MULT_FILA with N=64, BL=NaN
+ > total_duration_ms: 2171.031006 ms, average_duration_ms: 0.02951 ms
+Running MULT_BL_SIMPLE with N=64, BL=16
+ > total_duration_ms: 2173.855957 ms, average_duration_ms: 0.13157 ms
+Running MULT_BL_FILA with N=64, BL=16
+ > total_duration_ms: 2329.237061 ms, average_duration_ms: 0.05311 ms
+Running MULT_BL_SIMPLE with N=64, BL=32
+ > total_duration_ms: 2194.582031 ms, average_duration_ms: 0.16156 ms
+Running MULT_BL_FILA with N=64, BL=32
+ > total_duration_ms: 2659.872070 ms, average_duration_ms: 0.04233 ms
+Running MULT_BL_SIMPLE with N=64, BL=64
+ > total_duration_ms: 2196.251953 ms, average_duration_ms: 0.16647 ms
+Running MULT_BL_FILA with N=64, BL=64
+ > total_duration_ms: 2106.010986 ms, average_duration_ms: 0.02925 ms
+Running MULT_SIMPLE with N=512, BL=NaN
+ > total_duration_ms: 3757.445068 ms, average_duration_ms: 187.87225 ms
+Running MULT_FILA with N=512, BL=NaN
+ > total_duration_ms: 2131.023926 ms, average_duration_ms: 22.91424 ms
+Running MULT_BL_SIMPLE with N=512, BL=16
+ > total_duration_ms: 2155.352051 ms, average_duration_ms: 86.21408 ms
+Running MULT_BL_FILA with N=512, BL=16
+ > total_duration_ms: 2152.364990 ms, average_duration_ms: 36.48076 ms
+Running MULT_BL_SIMPLE with N=512, BL=32
+ > total_duration_ms: 2334.753906 ms, average_duration_ms: 116.73770 ms
+Running MULT_BL_FILA with N=512, BL=32
+ > total_duration_ms: 2171.718994 ms, average_duration_ms: 26.16529 ms
+Running MULT_BL_SIMPLE with N=512, BL=64
+ > total_duration_ms: 3292.397949 ms, average_duration_ms: 164.61990 ms
+Running MULT_BL_FILA with N=512, BL=64
+ > total_duration_ms: 2161.520020 ms, average_duration_ms: 23.24215 ms
+Running MULT_BL_SIMPLE with N=512, BL=128
+ > total_duration_ms: 3651.035156 ms, average_duration_ms: 182.55176 ms
+Running MULT_BL_FILA with N=512, BL=128
+ > total_duration_ms: 2136.975830 ms, average_duration_ms: 24.56294 ms
+Running MULT_SIMPLE with N=1024, BL=NaN
+ > total_duration_ms: 33136.316162 ms, average_duration_ms: 1656.81581 ms
+Running MULT_FILA with N=1024, BL=NaN
+ > total_duration_ms: 4150.897949 ms, average_duration_ms: 207.54490 ms
+Running MULT_BL_SIMPLE with N=1024, BL=16
+ > total_duration_ms: 13919.576904 ms, average_duration_ms: 695.97885 ms
+Running MULT_BL_FILA with N=1024, BL=16
+ > total_duration_ms: 6152.011963 ms, average_duration_ms: 307.60060 ms
+Running MULT_BL_SIMPLE with N=1024, BL=32
+ > total_duration_ms: 19068.385010 ms, average_duration_ms: 953.41925 ms
+Running MULT_BL_FILA with N=1024, BL=32
+ > total_duration_ms: 4470.572998 ms, average_duration_ms: 223.52865 ms
+Running MULT_BL_SIMPLE with N=1024, BL=64
+ > total_duration_ms: 27043.443848 ms, average_duration_ms: 1352.17219 ms
+Running MULT_BL_FILA with N=1024, BL=64
+ > total_duration_ms: 4254.290039 ms, average_duration_ms: 212.71450 ms
+Running MULT_BL_SIMPLE with N=1024, BL=128
+ > total_duration_ms: 29162.602783 ms, average_duration_ms: 1458.13014 ms
+Running MULT_BL_FILA with N=1024, BL=128
+ > total_duration_ms: 3948.425049 ms, average_duration_ms: 197.42125 ms
+Running MULT_SIMPLE with N=2048, BL=NaN
+ > total_duration_ms: 801511.706055 ms, average_duration_ms: 40075.58530 ms
+Running MULT_FILA with N=2048, BL=NaN
+ > total_duration_ms: 66856.728027 ms, average_duration_ms: 3342.83640 ms
+Running MULT_BL_SIMPLE with N=2048, BL=16
+ > total_duration_ms: 119646.725098 ms, average_duration_ms: 5982.33625 ms
+Running MULT_BL_FILA with N=2048, BL=16
+ > total_duration_ms: 58065.628174 ms, average_duration_ms: 2903.28141 ms
+Running MULT_BL_SIMPLE with N=2048, BL=32
+ > total_duration_ms: 169708.443848 ms, average_duration_ms: 8485.42219 ms
+Running MULT_BL_FILA with N=2048, BL=32
+ > total_duration_ms: 41375.282227 ms, average_duration_ms: 2068.76411 ms
+Running MULT_BL_SIMPLE with N=2048, BL=64
+ > total_duration_ms: 216020.708008 ms, average_duration_ms: 10801.03540 ms
+Running MULT_BL_FILA with N=2048, BL=64
+ > total_duration_ms: 33225.785889 ms, average_duration_ms: 1661.28929 ms
+Running MULT_BL_SIMPLE with N=2048, BL=128
+ > total_duration_ms: 236129.463867 ms, average_duration_ms: 11806.47319 ms
+Running MULT_BL_FILA with N=2048, BL=128
+ > total_duration_ms: 40363.625000 ms, average_duration_ms: 2018.18125 ms
+
+2022-04-03 22:09:46 hypernova in ~/devel/fing/gpgpu
+● ± |master U:1 ?:18 ✗| → 
+
+

@@ -64,21 +64,21 @@
     total_duration_ms = ((double) t_fin.tv_sec * 1000.0 + (double) t_fin.tv_usec / 1000.0 - \
                         ((double) t_ini.tv_sec * 1000.0 + (double) t_ini.tv_usec / 1000.0)); \
     printf(" > function duration estimated in %.5f milliseconds\n", total_duration_ms/iterations); \
-    iterations = (size_t) (BENCH_MS * iterations * 1.1 / total_duration_ms); \
-    if (iterations < 100) { \
-        printf(" > defaulting to 100 iterations\n"); \
-        iterations = 100; \
+    size_t bench_iterations = (size_t) (BENCH_MS * iterations * 1.1 / total_duration_ms); \
+    if (bench_iterations < iterations) { \
+        printf(" > function takes too long, skipping benchmark\n"); \
     } else { \
+        iterations = bench_iterations; \
         printf(" > benchmarking with %ld iterations (upsampling by 1.1)\n", iterations); \
+        /* now begins the actual benchmark */ \
+        gettimeofday(&t_ini, NULL); \
+        for (size_t i = 0; i < iterations; ++i) { \
+            acc += fn > 0 ? 1 : 0; \
+        } \
+        gettimeofday(&t_fin, NULL); \
+        total_duration_ms = ((double) t_fin.tv_sec * 1000.0 + (double) t_fin.tv_usec / 1000.0 - \
+                            ((double) t_ini.tv_sec * 1000.0 + (double) t_ini.tv_usec / 1000.0)); \
     } \
-    /* now begins the actual benchmark */ \
-    gettimeofday(&t_ini, NULL); \
-    for (size_t i = 0; i < iterations; ++i) { \
-        acc += fn > 0 ? 1 : 0; \
-    } \
-    gettimeofday(&t_fin, NULL); \
-    total_duration_ms = ((double) t_fin.tv_sec * 1000.0 + (double) t_fin.tv_usec / 1000.0 - \
-                        ((double) t_ini.tv_sec * 1000.0 + (double) t_ini.tv_usec / 1000.0)); \
     average_duration_ms = total_duration_ms / iterations; \
     printf(" > total_duration_ms: %f ms, average_duration_ms: %.5f ms\n",  \
            total_duration_ms, average_duration_ms, acc); \
