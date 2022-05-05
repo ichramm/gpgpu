@@ -1,3 +1,7 @@
+/*!
+ * \file practico2.cu
+ * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -9,7 +13,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 {
    if (code != cudaSuccess)
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr,"GPUassert: %s (%d) at %s:%d\n", cudaGetErrorString(code), code, file, line);
       if (abort) exit(code);
    }
 }
@@ -46,15 +50,15 @@ __device__ int modulo(int a, int b) {
 	return r;
 }
 
-/**
- * Kernel de la parte 1.a, funciona solo para los primeros N caracteres
+/*!
+ * \brief Kernel de la parte 1.a, funciona solo para los primeros N caracteres
  */
 __global__ void decrypt_kernel_1a(int *d_message, size_t length) {
     d_message[threadIdx.x] = modulo(A_MMI_M * (d_message[threadIdx.x] - B), M);
 }
 
-/**
- * Kernel de la parte 1.b
+/*!
+ * \brief Kernel de la parte 1.b
  */
 __global__ void decrypt_kernel_1b(int *d_message, size_t length) {
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -63,8 +67,8 @@ __global__ void decrypt_kernel_1b(int *d_message, size_t length) {
     }
 }
 
-/**
- * Kernel de la parte 1.c, cada thread debe procesar varios caracteres
+/*!
+ * \brief Kernel de la parte 1.c, cada thread debe procesar varios caracteres
  */
 __global__ void decrypt_kernel_1c(int *d_message, size_t length) {
     size_t block_txt_size = ceilf(length / (float)gridDim.x);
@@ -80,8 +84,8 @@ __global__ void decrypt_kernel_1c(int *d_message, size_t length) {
     }
 }
 
-/**
- * Kernel del ejercicio 2
+/*!
+ * \brief Kernel del ejercicio 2
  */
 __global__ void count_occurrences(int *d_message, int length, unsigned int *d_counts) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -90,9 +94,9 @@ __global__ void count_occurrences(int *d_message, int length, unsigned int *d_co
     }
 }
 
-/**
- * Idem anterior pero usando memoria compartida
- * Se observa una mejora de 3x
+/*!
+ * \brief Idem anterior pero usando memoria compartida. Se observa una
+ * mejora de 3x respecto de la implementación simple.
  */
 __global__ void count_occurrences_shared_mem(int *d_message, int length, unsigned int *d_counts) {
     __shared__ unsigned int partial_counts[M];
@@ -111,8 +115,8 @@ __global__ void count_occurrences_shared_mem(int *d_message, int length, unsigne
     }
 }
 
-/**
- * Solucion del ejercicio 1.a
+/*!
+ * \brief Solucion del ejercicio 1.a
  */
 static int ejercicio1a(const int * const h_message, size_t length) {
 
@@ -147,8 +151,8 @@ static int ejercicio1a(const int * const h_message, size_t length) {
     return 0;
 }
 
-/**
- * Solucion del ejercicio 1.b
+/*!
+ * \brief Solucion del ejercicio 1.b
  */
 static int ejercicio1b(const int * const h_message, size_t length) {
 
@@ -189,8 +193,8 @@ static int ejercicio1b(const int * const h_message, size_t length) {
     return 0;
 }
 
-/**
- * Solucion del ejercicio 1.c
+/*!
+ * \brief Solucion del ejercicio 1.c
  */
 static int ejercicio1c(const int * const h_message, size_t length) {
 
@@ -228,8 +232,8 @@ static int ejercicio1c(const int * const h_message, size_t length) {
     return 0;
 }
 
-/**
- * Solucion del ejercicio 2
+/*!
+ * \brief Solucion del ejercicio 2
  */
 static int ejercicio2(const int * const h_message, size_t length)
 {
