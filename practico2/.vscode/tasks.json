@@ -5,10 +5,7 @@
             "label": "CUDA Make",
             "type": "shell",
             "command": "make dbg=1",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "problemMatcher": [
                 "$nvcc"
             ]
