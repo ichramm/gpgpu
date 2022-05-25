@@ -84,6 +84,16 @@ __global__ void decrypt_kernel_1c(int *d_message, size_t length) {
     }
 }
 
+/*
+ * El patrón de acceso está mal. Se debe usar algo de este estilo:
+ */
+#if 0
+size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+for(; ind < length; ind += blockDim.x*gridDim.x) {
+    d_message[ind] = modulo( A_MMI_M * (d_message[ind] - B), M);
+}
+#endif
+
 /*!
  * \brief Kernel del ejercicio 2
  */

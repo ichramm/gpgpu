@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <string>
 
@@ -13,17 +14,17 @@
 
 #define CUDA_CHK(ans) gpuAssert((ans), __FILE__, __LINE__)
 
-#define CUDA_MEASURE_START()           \
-    cudaEvent_t measure_start_evt, measure_stop_evt;           \
+#define CUDA_MEASURE_START() \
+    cudaEvent_t measure_start_evt, measure_stop_evt; \
     CUDA_CHK(cudaEventCreate(&measure_start_evt)); \
     CUDA_CHK(cudaEventCreate(&measure_stop_evt));  \
     CUDA_CHK(cudaEventRecord(measure_start_evt, 0))
 
-#define CUDA_MEASURE_STOP(elapTimeVar)                         \
-    CUDA_CHK(cudaEventRecord(measure_stop_evt, 0));                        \
-    CUDA_CHK(cudaEventSynchronize(measure_stop_evt));                      \
+#define CUDA_MEASURE_STOP(elapTimeVar) \
+    CUDA_CHK(cudaEventRecord(measure_stop_evt, 0)); \
+    CUDA_CHK(cudaEventSynchronize(measure_stop_evt)); \
     CUDA_CHK(cudaEventElapsedTime(&elapTimeVar, measure_start_evt, measure_stop_evt)); \
-    CUDA_CHK(cudaEventDestroy(measure_start_evt));                         \
+    CUDA_CHK(cudaEventDestroy(measure_start_evt)); \
     CUDA_CHK(cudaEventDestroy(measure_stop_evt))
 
 /*!
@@ -39,10 +40,11 @@ constexpr unsigned int roundup_to_warp_size(unsigned int n)
 /*!
  * \brief Like `ceil()` but constexpr
  */
-constexpr unsigned int ceilx(double x)
+constexpr unsigned int ceilx(double num)
 {
-    unsigned int floor = (unsigned int) x;
-    return (x - floor) > 0.0 ? floor + 1 : floor;
+    return (static_cast<double>(static_cast<unsigned int>(num)) == num)
+        ? static_cast<unsigned int>(num)
+        : static_cast<unsigned int>(num) + ((num > 0) ? 1 : 0);
 }
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)

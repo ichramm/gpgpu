@@ -1,0 +1,106 @@
+================================================
+================================================
+================================================
+Device capability: 6.0, MPs: 3584, Warp Size: 32
+---------- Begin Ejercicio 3, parte a:
+Building cube...
+N      :  247673152
+Threads:  302886912
+Cube built.
+N:       394384
+Threads: 482304
+Some results:
+   (  1, 2):  1566.332   (  1, 8):  1566.313   (  1, 34):  1566.226   (  1, 144):  1564.188   (  1, 610):    46.846
+   (  3, 2):  1566.338   (  3, 8):  1566.319   (  3, 34):  1566.233   (  3, 144):  1564.448   (  3, 610):    46.852
+   (  5, 2):  1566.345   (  5, 8):  1566.325   (  5, 34):  1566.240   (  5, 144):  1564.653   (  5, 610):    46.859
+   ( 13, 2):  1566.370   ( 13, 8):  1566.351   ( 13, 34):  1566.267   ( 13, 144):  1565.170   ( 13, 610):    46.887
+   ( 21, 2):  1566.396   ( 21, 8):  1566.377   ( 21, 34):  1566.293   ( 21, 144):  1565.453   ( 21, 610):    46.916
+   ( 55, 2):  1566.522   ( 55, 8):  1566.497   ( 55, 34):  1566.403   ( 55, 144):  1565.945   ( 55, 610):    47.072
+   ( 89, 2):  1566.716   ( 89, 8):  1566.672   ( 89, 34):  1566.531   ( 89, 144):  1566.141   ( 89, 610):    47.377
+   (233, 2):    -0.345   (233, 8):    -0.389   (233, 34):    -0.702   (233, 144):  1566.732   (233, 610):   440.731
+   (377, 2):     0.225   (377, 8):     0.197   (377, 34):     0.097   (377, 144):    -0.331   (377, 610):   441.300
+Kernel elapsed time: 381.039703 ms
+---------- End Ejercicio 3, parte a ----------
+==33104== Profiling result:
+==33104== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "Tesla P100-PCIE-12GB (0)"
+    Kernel: kernel_ejercicio3a(double const *, double*, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions   247673154   247673154   247673154
+          1                            gld_efficiency             Global Memory Load Efficiency     100.00%     100.00%     100.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+    Kernel: kernel_ejercicio2(double*, double, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions           2           2           2
+          1                            gld_efficiency             Global Memory Load Efficiency       0.00%       0.00%       0.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+
+================================================
+================================================
+================================================
+---------- Begin Ejercicio 3, parte b:
+Building cube...
+N      :  247673152
+Threads:  302886912
+Cube built.
+N:       394384
+Threads: 482304
+Some results:
+   (  1, 2): -1566.345   (  1, 8): -1566.364   (  1, 34): -1566.452   (  1, 144): -1569.108   (  1, 610):  1566.387
+   (  3, 2): -1566.351   (  3, 8): -1566.370   (  3, 34): -1566.459   (  3, 144): -1569.701   (  3, 610):  1566.380
+   (  5, 2): -1566.357   (  5, 8): -1566.377   (  5, 34): -1566.466   (  5, 144): -1570.612   (  5, 610):  1566.373
+   ( 13, 2): -1566.383   ( 13, 8): -1566.403   ( 13, 34): -1566.497   ( 13, 144):    47.559   ( 13, 610):  1566.348
+   ( 21, 2): -1566.410   ( 21, 8): -1566.430   ( 21, 34): -1566.531   ( 21, 144):     3.700   ( 21, 610):  1566.322
+   ( 55, 2): -1566.540   ( 55, 8): -1566.568   ( 55, 34): -1566.732   ( 55, 144):     0.702   ( 55, 610):  1566.208
+   ( 89, 2): -1566.748   ( 89, 8): -1566.804   ( 89, 34): -1567.250   ( 89, 144):     0.331   ( 89, 610):  1566.057
+   (233, 2):     0.318   (233, 8):     0.282   (233, 34):     0.160   (233, 144):    -0.235   (233, 610):   441.443
+   (377, 2):    -0.245   (377, 8):    -0.277   (377, 34):    -0.470   (377, 144):  1566.910   (377, 610):   440.805
+Kernel elapsed time: 392.615448 ms
+---------- End Ejercicio 3, parte b ----------
+==33229== Profiling result:
+==33229== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "Tesla P100-PCIE-12GB (0)"
+    Kernel: kernel_ejercicio2(double*, double, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions           2           2           2
+          1                            gld_efficiency             Global Memory Load Efficiency       0.00%       0.00%       0.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+    Kernel: kernel_ejercicio3b(double const *, double*, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions   247673154   247673154   247673154
+          1                            gld_efficiency             Global Memory Load Efficiency     100.00%     100.00%     100.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+
+================================================
+================================================
+================================================
+---------- Begin Ejercicio 3, parte c:
+Building cube...
+N      :  247673152
+Threads:  302886912
+Cube built.
+N:       394384
+Threads: 482304
+Some results:
+   (  1, 2):  1566.338   (  1, 8):  1566.357   (  1, 34):  1566.444   (  1, 144):  1568.691   (  1, 610): -1566.393
+   (  3, 2):  1566.332   (  3, 8):  1566.351   (  3, 34):  1566.437   (  3, 144):  1568.382   (  3, 610): -1566.400
+   (  5, 2):  1566.325   (  5, 8):  1566.345   (  5, 34):  1566.430   (  5, 144):  1568.142   (  5, 610): -1566.406
+   ( 13, 2):  1566.300   ( 13, 8):  1566.319   ( 13, 34):  1566.403   ( 13, 144):  1567.559   ( 13, 610): -1566.434
+   ( 21, 2):  1566.274   ( 21, 8):  1566.293   ( 21, 34):  1566.377   ( 21, 144):  1567.250   ( 21, 610): -1566.463
+   ( 55, 2):  1566.149   ( 55, 8):  1566.174   ( 55, 34):  1566.267   ( 55, 144):  1566.732   ( 55, 610): -1566.616
+   ( 89, 2):  1565.960   ( 89, 8):  1566.003   ( 89, 34):  1566.141   ( 89, 144):  1566.531   ( 89, 610): -1566.910
+   (233, 2):   441.314   (233, 8):   441.359   (233, 34):   441.687   (233, 144):  1565.945   (233, 610):     0.235
+   (377, 2):   440.741   (377, 8):   440.768   (377, 34):   440.867   (377, 144):   441.300   (377, 610):    -0.331
+Kernel elapsed time: 811.888977 ms
+---------- End Ejercicio 3, parte c ----------
+==33400== Profiling result:
+==33400== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "Tesla P100-PCIE-12GB (0)"
+    Kernel: kernel_ejercicio3c(double const *, double*, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions   247673154   247673154   247673154
+          1                            gld_efficiency             Global Memory Load Efficiency      25.00%      25.00%      25.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+    Kernel: kernel_ejercicio2(double*, double, unsigned int, unsigned int)
+          1                          gld_transactions                  Global Load Transactions           2           2           2
+          1                            gld_efficiency             Global Memory Load Efficiency       0.00%       0.00%       0.00%
+          1                            gst_efficiency            Global Memory Store Efficiency     100.00%     100.00%     100.00%
+

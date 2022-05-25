@@ -11,9 +11,14 @@
 		},
 		{
 			"path": "../../../Drive/College/GPGPU"
+		},
+		{
+			"path": "practico1"
 		}
 	],
 	"settings": {
+		"C_Cpp.errorSquiggles": "Enabled",
+		"C_Cpp.enhancedColorization": "Enabled",
 		"files.associations": {
 			"*.startup": "shellscript",
 			"*.m": "octave",

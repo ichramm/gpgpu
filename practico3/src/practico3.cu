@@ -7,11 +7,12 @@
 #include "ejercicio1.cuh"
 #include "ejercicio2.cuh"
 #include "ejercicio3.cuh"
+#include "ejercicio4.cuh"
 
 int main(int argc, char *argv[]) {
     const char *part = nullptr;
     if (argc > 1 && strcmp(argv[1], "-h") == 0) {
-        printf("Usage: %s [part]\n\t ; part = 1|2|3a|3b|3c|3cs|4\n", argv[0]);
+        printf("Usage: %s [part]\n\t ; part = 1|2|3a|3b|3c|4|4s\n", argv[0]);
         return 0;
     }
 	part = argv[1];
@@ -32,8 +33,8 @@ int main(int argc, char *argv[]) {
     SOLVE_EXERCISE("3a", "Ejercicio 3, parte a", ejercicio3a());
     SOLVE_EXERCISE("3b", "Ejercicio 3, parte b", ejercicio3b());
     SOLVE_EXERCISE("3c", "Ejercicio 3, parte c", ejercicio3c());
-    SOLVE_EXERCISE("3cs", "Ejercicio 3, parte c (shared memory)", ejercicio3cs());
-
+    SOLVE_EXERCISE("4", "Ejercicio 4", ejercicio4());
+    SOLVE_EXERCISE("4s", "Ejercicio 4 (shared memory)", ejercicio4(true));
 
     return 0;
 }

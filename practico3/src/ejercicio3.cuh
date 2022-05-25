@@ -3,118 +3,69 @@
 
 #include "practico3.h"
 
-__global__ void kernel_ejercicio3a(value_type *from_cube,
+__global__ void kernel_ejercicio3a(const value_type* __restrict__ from_cube,
                                    value_type *to_matrix,
                                    unsigned int N,
-                                   unsigned int width,
-                                   unsigned int mem_xdim,  // same as width if there's no padding
-                                   unsigned int mem_ydim)
+                                   unsigned int width)
 {
     auto blockId  = blockIdx.y * gridDim.x + blockIdx.x;
 	auto threadId = blockId * blockDim.x + threadIdx.x;
 
     if (threadId < N) {
         // matrix[y, x] = sum (z from -pi to pi) f(x, y, z)
-        auto x_coord = threadId % mem_xdim;
-        if (x_coord < width) { // always true if there's no padding
-            auto y_coord = threadId / mem_xdim;
+        auto y_coord = threadId / width;
+        auto x_coord = threadId % width;
 
-            value_type acc = 0;
-            for (auto z_coord = 0u; z_coord < width; ++z_coord) {
-                acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, mem_xdim, mem_ydim)];
-            }
-
-            to_matrix[threadId] = acc;
+        value_type acc = 0;
+        for (auto z_coord = 0u; z_coord < width; ++z_coord) {
+            acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, width, width)];
         }
+
+        to_matrix[threadId] = acc;
     }
 }
 
-__global__ void kernel_ejercicio3b(value_type *from_cube,
+__global__ void kernel_ejercicio3b(const value_type* __restrict__ from_cube,
                                    value_type *to_matrix,
                                    unsigned int N,
-                                   unsigned int width,
-                                   unsigned int mem_xdim,  // same as width if there's no padding
-                                   unsigned int mem_ydim)
+                                   unsigned int width)
 {
     auto blockId  = blockIdx.y * gridDim.x + blockIdx.x;
 	auto threadId = blockId * blockDim.x + threadIdx.x;
 
     if (threadId < N) {
         // matrix[z, x] = sum (y from -pi to pi) f(x, y, z)
-        auto x_coord = threadId % mem_xdim;
-        if (x_coord < width) { // always true if there's no padding
-            auto z_coord = threadId / mem_xdim;
+        auto z_coord = threadId / width;
+        auto x_coord = threadId % width;
 
-            value_type acc = 0;
-            for (auto y_coord = 0u; y_coord < width; ++y_coord) {
-                acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, mem_xdim, mem_ydim)];
-            }
-
-            to_matrix[threadId] = acc;
+        value_type acc = 0;
+        for (auto y_coord = 0u; y_coord < width; ++y_coord) {
+            acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, width, width)];
         }
+
+        to_matrix[threadId] = acc;
     }
 }
 
-__global__ void kernel_ejercicio3c(value_type *from_cube,
+__global__ void kernel_ejercicio3c(const value_type* __restrict__ from_cube,
                                    value_type *to_matrix,
                                    unsigned int N,
-                                   unsigned int width,
-                                   unsigned int mem_xdim,  // same as width if there's no padding
-                                   unsigned int mem_ydim)
+                                   unsigned int width)
 {
     auto blockId  = blockIdx.y * gridDim.x + blockIdx.x;
 	auto threadId = blockId * blockDim.x + threadIdx.x;
 
     if (threadId < N) {
         // matrix[z, y] = sum (x from -pi to pi) f(x, y, z)
-        auto y_coord = threadId % mem_xdim;
-        if (y_coord < width) { // padding at row-level
-            auto z_coord = threadId / mem_xdim;
+        auto z_coord = threadId / width;
+        auto y_coord = threadId % width;
 
-            value_type acc = 0;
-            for (auto x_coord = 0u; x_coord < width; ++x_coord) {
-                acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, mem_xdim, mem_ydim)];
-            }
-
-            to_matrix[threadId] = acc;
+        value_type acc = 0;
+        for (auto x_coord = 0u; x_coord < width; ++x_coord) {
+            acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, width, width)];
         }
-    }
-}
 
-
-__global__ void kernel_ejercicio3cs(value_type *from_cube,
-                                    value_type *to_matrix,
-                                    unsigned int N,
-                                    unsigned int width,
-                                    unsigned int mem_xdim,  // same as width if there's no padding
-                                    unsigned int mem_ydim)
-{
-    __shared__ value_type shared_mem[BLOCK_SIZE];
-
-    auto blockId  = blockIdx.y * gridDim.x + blockIdx.x;
-	auto threadId = blockId * blockDim.x + threadIdx.x;
-
-    if (threadId < N) {
-        // matrix[z, y] = sum (x from -pi to pi) f(x, y, z)
-        auto y_coord = threadId % mem_xdim;
-        if (y_coord < width) { // padding at row-level
-            auto z_coord = threadId / mem_xdim;
-
-            value_type acc = 0;
-            for (auto x_coord = 0u; x_coord < width; ++x_coord) {
-                acc += from_cube[COORD3IDX(x_coord, y_coord, z_coord, mem_xdim, mem_ydim)];
-            }
-
-            shared_mem[threadIdx.x] = acc;
-        }
-    }
-
-    __syncthreads();
-
-    if (threadIdx.x == 0 && threadId < N) {
-        memcpy(to_matrix + threadId,
-               shared_mem,
-               min(sizeof(shared_mem), sizeof(value_type) * (N - threadId)));
+        to_matrix[threadId] = acc;
     }
 }
 
@@ -122,21 +73,18 @@ static void ejercicio3(char part) {
     value_type *d_cube;
     unsigned int n_cube;
     unsigned int width;
-    unsigned int mem_xdim;
-    unsigned int mem_ydim;
-    unsigned int mem_zdim;
 
     printf("Building cube...\n");
-    ejercicio2(&d_cube, &n_cube, &width, &mem_xdim, &mem_ydim, &mem_zdim);
+    ejercicio2(&d_cube, &n_cube, &width);
     printf("Cube built.\n");
 
-    auto N = mem_ydim * mem_xdim;
+    auto N = width * width;
 
     value_type *d_matrix;
-    cudaMalloc(&d_matrix, N * sizeof(value_type));
+    CUDA_CHK(cudaMalloc(&d_matrix, N * sizeof(value_type)));
 
     // 2D grid of 1D blocks
-    auto dimGrid = dim3(ceilx((double)mem_xdim/BLOCK_SIZE), mem_ydim, 1);
+    auto dimGrid = dim3(ceilx((double)width/BLOCK_SIZE), width, 1);
     auto dimBlock = dim3(BLOCK_SIZE, 1, 1);
 
     printf("N:       %6d\n", N);
@@ -146,24 +94,22 @@ static void ejercicio3(char part) {
     CUDA_MEASURE_START();
     switch (part) {
         case 'a':
-            kernel_ejercicio3a<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width, mem_xdim, mem_ydim);
+            kernel_ejercicio3a<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width);
             break;
         case 'b':
-            kernel_ejercicio3b<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width, mem_xdim, mem_ydim);
+            kernel_ejercicio3b<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width);
             break;
         case 'c':
-            kernel_ejercicio3c<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width, mem_xdim, mem_ydim);
-            break;
-        case 'C':
-            kernel_ejercicio3cs<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width, mem_xdim, mem_ydim);
+            kernel_ejercicio3c<<<dimGrid, dimBlock>>>(d_cube, d_matrix, N, width);
             break;
     }
+    CUDA_CHK(cudaGetLastError());
+    CUDA_CHK(cudaDeviceSynchronize());
     CUDA_MEASURE_STOP(elapsedTime);
-    printf("Elapsed time: %f ms\n", elapsedTime);
 
     value_type *h_matrix; // = (value_type *)malloc(N * sizeof(value_type));
-    cudaMallocHost(&h_matrix, N * sizeof(value_type));
-    cudaMemcpy(h_matrix, d_matrix, N * sizeof(value_type), cudaMemcpyDeviceToHost);
+    CUDA_CHK(cudaMallocHost(&h_matrix, N * sizeof(value_type)));
+    CUDA_CHK(cudaMemcpy(h_matrix, d_matrix, N * sizeof(value_type), cudaMemcpyDeviceToHost));
 
     // TODO: Validate data is correct?
 
@@ -174,16 +120,16 @@ static void ejercicio3(char part) {
         for (auto x : fibonacci_numbers) {
             if (x > width) break;
             if (x & 1) continue; // skip some
-            auto valx = COORDVALX(x, 0.01);
-            auto valy = COORDVALY(y, 0.01);
-            printf("\t(%3d, %d): %s", y, x, val2string(h_matrix[COORD2IDX(x, y, mem_xdim)], 8).c_str());
+            printf("   (%3d, %d): %s", y, x, val2string(h_matrix[COORD2IDX(x, y, width)], "% 5.3f", 9).c_str());
         }
         printf("\n");
     }
 
-    cudaFree(h_matrix);
+    cudaFreeHost(h_matrix);
     cudaFree(d_matrix);
     cudaFree(d_cube);
+
+    printf("Kernel elapsed time: %f ms\n", elapsedTime);
 }
 
 void ejercicio3a() {
@@ -196,10 +142,6 @@ void ejercicio3b() {
 
 void ejercicio3c() {
     ejercicio3('c');
-}
-
-void ejercicio3cs() {
-    ejercicio3('C');
 }
 
 #endif // EJERCICIO3_CUH__

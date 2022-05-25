@@ -8,11 +8,11 @@ typedef double value_type;
 #define PI 3.14159265359
 #define L  6.28318530718 // 2*PI
 
-// coordinate grows from left-right and it's displaced by PI to the right
-#define COORDVALX(coord, h)             (h * coord - PI)
+// coordinate grows from left to right (xval = -PI when xcoord = 0)
+#define COORDVALX(xcoord, h)             (h * xcoord - PI)
 
-// Y coordinate grows from top-down is displaced by PI to the bottom
-#define COORDVALY(y, h)                 (PI - h * y)
+// Y coordinate grows from top to bottom (yval = PI when ycoord = 0)
+#define COORDVALY(ycoord, h)             (PI - h * ycoord)
 
 // coordinate can be treated as the X coordinate for this matter
 #define COORDVALZ COORDVALX
@@ -25,7 +25,7 @@ typedef double value_type;
 
 #ifndef BLOCK_SIZE
 // Allowed to be overridden at compile time
-#define BLOCK_SIZE                      (128u)
+#define BLOCK_SIZE                      (256u)
 // note: 32 thread per block peformed bad, but more than 128 wasn't much better
 // TODO: Show some numbers in the report
 #endif
@@ -45,10 +45,10 @@ __host__ __device__ inline value_type f2(value_type x, value_type y, value_type 
     return tan(x + y + z);
 }
 
-inline std::string val2string(value_type val, int width)
+inline std::string val2string(value_type val, const char *format, int width)
 {
     char buffer[12] = {0};
-    snprintf(buffer, sizeof(buffer), "% 5.2f", val);
+    snprintf(buffer, sizeof(buffer), format, val);
     std::string str = buffer;
     std::string padding(width - str.size(), ' ');
     return padding + str;

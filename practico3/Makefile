@@ -27,9 +27,9 @@ endif
 $(info Using cuda compiler $(NVCC))
 
 ifeq ($(dbg),1)
-	NVCCFLAGS :=$(NVCCFLAGS) -G
+	NVCCFLAGS :=$(NVCCFLAGS) -std=c++11 -G
 else
-	NVCCFLAGS :=$(NVCCFLAGS) -lineinfo
+	NVCCFLAGS :=$(NVCCFLAGS) -std=c++11 -lineinfo
 endif
 
 # default target
@@ -52,5 +52,9 @@ run: build
 .PHONY: prof
 prof: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" nvprof \
-	-m gld_transactions,dram_read_transactions,l2_read_transactions,l2_tex_read_transactions,local_load_transactions,local_load_transactions \
+	-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency \
 	$(shell readlink -f $(OUTPUT_FILE)) $(ARGS)
+
+## -m gld_transactions,dram_read_transactions,
+## l2_read_transactions,l2_tex_read_transactions,
+## local_load_transactions,local_load_transactions
