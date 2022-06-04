@@ -25,7 +25,7 @@ endif
 
 $(info Using cuda compiler $(NVCC))
 
-NVCCFLAGS:=$(NVCCFLAGS) --compiler-options -Werror --compiler-options -Wextra -std=c++11 -g
+NVCCFLAGS:=$(NVCCFLAGS) --compiler-options -Wall --compiler-options -Wextra -std=c++11 -g -lcurand
 #-ccbin clang-8
 
 ifeq ($(dbg),1)
@@ -34,9 +34,13 @@ else
 	NVCCFLAGS :=$(NVCCFLAGS) -O3 -lineinfo
 endif
 
+SOURCES=$(SRC_DIR)/practico4.cu $(SRC_DIR)/practico4.h $(SRC_DIR)/utils.h \
+	$(SRC_DIR)/ejercicio1.cuh $(SRC_DIR)/ejercicio2.cuh \
+	$(SRC_DIR)/ejercicio3.cuh $(SRC_DIR)/ejercicio4.cuh
+
 # default target
 build: $(OUTPUT_FILE)
-$(OUTPUT_FILE): $(OUTPUT_DIR) $(SRC_DIR)/practico4.cu
+$(OUTPUT_FILE): $(OUTPUT_DIR) $(SOURCES)
 	$(NVCC) $(NVCCFLAGS) $(SRC_DIR)/practico4.cu -o $(OUTPUT_FILE)
 
 $(OUTPUT_DIR):
@@ -52,6 +56,7 @@ run: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" $(shell readlink -f $(OUTPUT_FILE)) $(ARGS)
 
 .PHONY: prof
+prof: NVCCFLAGS:=$(NVCCFLAGS) -DBENCH_TIMES=1
 prof: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" nvprof \
 	-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency \

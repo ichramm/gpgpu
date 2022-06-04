@@ -8,13 +8,18 @@
 //#include <cuda.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <assert.h>
-#include <unistd.h>
+#include <ctype.h>
 
+#include <unistd.h>
 #include <sys/time.h>
 
+#include <cstdint>
 #include <string>
+
+#include <cuda.h>
+#include <curand.h>
+#include <curand_kernel.h>
 
 // should use cudaDeviceProp.warpSize but it is unlikely to change
 #define WARP_SIZE (32u)
@@ -40,9 +45,9 @@
 
 struct Metric
 {
-    size_t count = 0;
-    double sum = 0;
-    double sumsq = 0;
+    size_t count_ = 0;
+    double total_ = 0;
+    double sumsq_ = 0;
 
     timeval track_begin() {
         timeval tv;
@@ -59,22 +64,31 @@ struct Metric
     }
 
     void add_sample(double sample) {
-        count += 1;
-        sum += sample;
-        sumsq += sample * sample;
+        count_ += 1;
+        total_ += sample;
+        sumsq_ += sample * sample;
+    }
+
+    double total() const {
+        return total_;
     }
 
     double mean() const {
-        return sum / count;
+        return count_ ? total_ / count_ : 0;
     }
 
     // basado en unidad 1 - sesion 2 del curso Metodos de Monte Carlo
     // https://eva.fing.edu.uy/course/view.php?id=24
     double stdev() const {
-        if (count > 1) {
-            return std::sqrt(sumsq / (count * (count - 1)) - (mean() * mean()) / (count - 1));
+        if (count_ > 1) {
+            return std::sqrt(sumsq_ / (count_ * (count_ - 1)) - (mean() * mean()) / (count_ - 1));
         }
         return 0;
+    }
+
+    double cv() const {
+        auto m = mean();
+        return m != 0 ? stdev() / m : 0;
     }
 };
 
@@ -82,7 +96,7 @@ struct Metric
  * \brief Returns the minimum multiple of the warp size that is greater
  * than or equal to the given value `n`.
  */
-constexpr unsigned int roundup_to_warp_size(unsigned int n)
+constexpr uint32_t roundup_to_warp_size(uint32_t n)
 {
     // works as long as WARP_SIZE is a power of 2
     return (n + WARP_SIZE - 1) & ~(WARP_SIZE - 1);
@@ -91,11 +105,11 @@ constexpr unsigned int roundup_to_warp_size(unsigned int n)
 /*!
  * \brief Like `ceil()` but constexpr
  */
-constexpr unsigned int ceilx(double num)
+constexpr uint32_t ceilx(double num)
 {
-    return (static_cast<double>(static_cast<unsigned int>(num)) == num)
-        ? static_cast<unsigned int>(num)
-        : static_cast<unsigned int>(num) + ((num > 0) ? 1 : 0);
+    return (static_cast<double>(static_cast<uint32_t>(num)) == num)
+        ? static_cast<uint32_t>(num)
+        : static_cast<uint32_t>(num) + ((num > 0) ? 1 : 0);
 }
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
@@ -137,7 +151,7 @@ inline void print_device_capabilities()
            props.warpSize);
 }
 
-static unsigned int read_file(const char * fname, int** input)
+static uint32_t read_file(const char * fname, int** input)
 {
     FILE *f = fopen(fname, "r");
     if (f == NULL) {

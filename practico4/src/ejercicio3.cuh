@@ -7,6 +7,10 @@
 
 #include "practico4.h"
 
+#include <numeric>
+#include <array>
+#include <algorithm>
+
 // se asume que el tamaño de perm es igual al del bloque
 // y que las premutaciones son válidas
 __global__ void block_perm(int * data, int *perm, int length){
@@ -17,9 +21,146 @@ __global__ void block_perm(int * data, int *perm, int length){
     data[off+threadIdx.x]=perm_data;
 }
 
+#if 0
+Dicho kernel divide el arreglo de entrada en segmentos de tamaño igual al tamaño de bloque de threads y
+aplica una permutación a cada segmento.
+
+Utilice la memoria compartida para mejorar el patrón de acceso a la memoria global sin alterar la
+semántica del programa. Compare el desempeño de ambas variantes para arreglos de tamaño 2^24 y 2^26.
+#endif
+
+__global__ void block_perm_shm(int * data, const int * __restrict__ perm, int length) {
+    extern __shared__ int shm_data[];
+
+    int id = blockIdx.x * blockDim.x + +threadIdx.x;
+    if (id >= length) return;
+
+    // permutation is guaranteed to be inside the segment, so
+    // step 1: coalesced copy from global memory to shared memory
+    // step 2: read from shared memory
+    shm_data[threadIdx.x] = data[id];
+
+    __syncthreads();
+
+    data[id] = shm_data[perm[threadIdx.x]];
+}
+
+__global__ void block_perm_shm2(int * data, const int * __restrict__ perm, int length) {
+    // size = block_size * 32
+    extern __shared__ int shm_data[];
+
+    int id = blockIdx.x * blockDim.x + +threadIdx.x;
+    if (id >= length) return;
+
+    auto value = data[id];
+
+    #pragma unroll
+    for (int i = 0; i < 32; ++i) {
+        shm_data[32*i + threadIdx.x] = value;
+    }
+
+    // permutation is guaranteed to be inside the segment, so
+    // step 1: coalesced copy from global memory to shared memory
+    // step 2: read from shared memory
+    //shm_data[threadIdx.x] =  data[id];
+
+    __syncthreads();
+
+    data[id] = shm_data[threadIdx.x / 32 + perm[threadIdx.x]];
+}
+
+
+template <int LenLog2> void ejercicio3_impl()
+{
+    constexpr int length = (1 << LenLog2);
+    constexpr int block_size = 256;
+    constexpr int grid_size = length / block_size;
+    constexpr int shared_mem_size = sizeof(int) * block_size;
+
+    std::srand(35141);
+
+    std::array<int, block_size> h_perm;
+    int *h_data = new int[length];
+    int *h_res1 = new int[length];
+    int *h_res2 = new int[length];;
+
+    std::generate(h_data, h_data+length, std::rand);
+
+    int *d_data, *d_perm;
+    CUDA_CHK(cudaMalloc(&d_data, sizeof(int)*length));
+    CUDA_CHK(cudaMalloc(&d_perm, sizeof(h_perm)));
+
+
+    Metric m1, m2, m3;
+    auto error = false;
+    for (auto i = 0; i < 10 && !error; ++i) // BENCH_TIMES
+    {
+        std::generate(h_perm.begin(), h_perm.end(), []{
+            return rand() % block_size;
+        });
+
+        CUDA_CHK(cudaMemcpy(d_perm, h_perm.data(), sizeof(h_perm), cudaMemcpyHostToDevice));
+
+        {
+            CUDA_CHK(cudaMemcpy(d_data, h_data, sizeof(int)*length, cudaMemcpyHostToDevice));
+            auto t = m1.track_begin();
+            block_perm<<<grid_size, block_size>>>(d_data, d_perm, length);
+            CUDA_CHK(cudaGetLastError());
+            CUDA_CHK(cudaDeviceSynchronize());
+            m1.track_end(t);
+            CUDA_CHK(cudaMemcpy(h_res1, d_data, sizeof(int)*length, cudaMemcpyDeviceToHost));
+        }
+
+        {
+            CUDA_CHK(cudaMemcpy(d_data, h_data, sizeof(int)*length, cudaMemcpyHostToDevice));
+            auto t = m2.track_begin();
+            block_perm_shm<<<grid_size, block_size, shared_mem_size>>>(d_data, d_perm, length);
+            CUDA_CHK(cudaGetLastError());
+            CUDA_CHK(cudaDeviceSynchronize());
+            m2.track_end(t);
+            CUDA_CHK(cudaMemcpy(h_res2, d_data, sizeof(int)*length, cudaMemcpyDeviceToHost));
+        }
+
+        for (int i = 0; !error && i < length; ++i) {
+            if (h_res1[i] != h_res2[i]) {
+                printf("ERROR: Array mismatch\n");
+                error = true;
+            }
+        }
+
+        {
+            CUDA_CHK(cudaMemcpy(d_data, h_data, sizeof(int)*length, cudaMemcpyHostToDevice));
+            auto t = m3.track_begin();
+            block_perm_shm2<<<grid_size, block_size, shared_mem_size*32>>>(d_data, d_perm, length);
+            CUDA_CHK(cudaGetLastError());
+            CUDA_CHK(cudaDeviceSynchronize());
+            m3.track_end(t);
+            CUDA_CHK(cudaMemcpy(h_res2, d_data, sizeof(int)*length, cudaMemcpyDeviceToHost));
+        }
+
+        for (int i = 0; !error && i < length; ++i) {
+            if (h_res1[i] != h_res2[i]) {
+                printf("ERROR: Array mismatch\n");
+                error = true;
+            }
+        }
+    }
+
+    printf("(length=2^%d) Simple Kernel: mean=%f ms, stdev=%f, CV=%f\n", LenLog2, m1.mean(), m1.stdev(), m1.cv());
+    printf("(length=2^%d) SHM Kernel   : mean=%f ms, stdev=%f, CV=%f\n", LenLog2, m2.mean(), m2.stdev(), m2.cv());
+    printf("(length=2^%d) SHM Kernel 2 : mean=%f ms, stdev=%f, CV=%f\n", LenLog2, m3.mean(), m3.stdev(), m3.cv());
+
+    cudaFree(d_perm);
+    cudaFree(d_data);
+    delete[] h_res2;
+    delete[] h_res1;
+    delete[] h_data;
+}
+
 
 void ejercicio3() {
-
+    ejercicio3_impl<24>();
+    ejercicio3_impl<26>();
 }
 
 #endif // EJERCICIO3_CUH__

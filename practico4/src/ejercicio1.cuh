@@ -20,8 +20,8 @@ static constexpr int M = 256;
  * \brief Kernel del ejercicio del práctico 2
  */
 __global__ void count_occurrences(const int* __restrict__ d_message,
-                                  unsigned int length,
-                                  unsigned int *d_counts)
+                                  uint32_t length,
+                                  uint32_t *d_counts)
 {
     auto idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < length) {
@@ -33,10 +33,10 @@ __global__ void count_occurrences(const int* __restrict__ d_message,
  * \brief Kernel del ejercicio del práctico 2 que hace uso de memoria compartida.
  */
 __global__ void count_occurrences_shm(const int* __restrict__ d_message,
-                                      unsigned int length,
-                                      unsigned int *d_counts)
+                                      uint32_t length,
+                                      uint32_t *d_counts)
 {
-    __shared__ unsigned int partial_counts[M];
+    __shared__ uint32_t partial_counts[M];
 
     // init shared memory
     for (auto i = threadIdx.x; i < M; i += blockDim.x) {
@@ -60,11 +60,14 @@ __global__ void count_occurrences_shm(const int* __restrict__ d_message,
     }
 }
 
+/*!
+ * \brief shared memory + stride memory access
+ */
 __global__ void count_occurrences_shm_stride(const int* __restrict__ d_message,
-                                             unsigned int length,
-                                             unsigned int *d_counts)
+                                             uint32_t length,
+                                             uint32_t *d_counts)
 {
-    __shared__ unsigned int partial_counts[M];
+    __shared__ uint32_t partial_counts[M];
 
     // init shared memory
     for (auto i = threadIdx.x; i < M; i += blockDim.x) {
@@ -89,29 +92,10 @@ __global__ void count_occurrences_shm_stride(const int* __restrict__ d_message,
     }
 }
 
-
-static void print_counts(unsigned int *h_counts)
-{
-    int printed = 0;
-    for (int i = 0; i < M; ++i) {
-        if (h_counts[i] > 0) {
-            printf(printed ? ",  %3d: %6d" : " %3d: %6d", i, h_counts[i]);
-            ++printed;
-            if (printed > 8) {
-                printf("\n");
-                printed = 0;
-            }
-        }
-    }
-    if (printed > 0) {
-        printf("\n");
-    }
-}
-
-static void print_offending_counts(unsigned int *counts,
-                                   unsigned int *ground_truth,
-                                   unsigned int sum_total,
-                                   unsigned int msg_length)
+static void print_offending_counts(uint32_t *counts,
+                                   uint32_t *ground_truth,
+                                   uint32_t sum_total,
+                                   uint32_t msg_length)
 {
     printf("total: %u, expected: %u\n", sum_total, msg_length);
     for (int i = 0; i < M; ++i) {
@@ -121,26 +105,23 @@ static void print_offending_counts(unsigned int *counts,
     }
 }
 
-
 static void process_results(const char *test_name,
-                            unsigned int block_size,
-                            Metric metric,
-                            unsigned int msg_length,
-                            unsigned int *d_counts,
-                            unsigned int *h_counts,
+                            uint32_t block_size,
+                            Metric m,
+                            uint32_t msg_length,
+                            uint32_t *d_counts,
+                            uint32_t *h_counts,
                             bool validate = false)
 {
-    auto mean = metric.mean();
-    auto stdev = metric.stdev();
-    printf("%s (BLSZ=%u) - mean: %f ms, stdev: %f, CV: %f\n", test_name, block_size, mean, stdev, stdev/mean);
+    printf("%s (BLSZ=%u) - mean: %f ms, stdev: %f, CV: %f\n", test_name, block_size, m.mean(), m.stdev(), m.cv());
 
     // tricky: if validate = true, then h_counts contains the ground truth
     if (validate) {
         // copy to local array and compare to h_counts
-        unsigned int temp_counts[M];
-        cudaMemcpy(temp_counts, d_counts, M * sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        uint32_t temp_counts[M];
+        cudaMemcpy(temp_counts, d_counts, M * sizeof(uint32_t), cudaMemcpyDeviceToHost);
         auto total = std::accumulate(temp_counts, temp_counts+M, 0u);
-        if (total != msg_length || std::memcmp(h_counts, temp_counts, M * sizeof(unsigned int))) {
+        if (total != msg_length || std::memcmp(h_counts, temp_counts, M * sizeof(uint32_t))) {
             printf("\tERROR: counts don't match\n");
             print_offending_counts(temp_counts, h_counts, total, msg_length);
         } else {
@@ -148,12 +129,8 @@ static void process_results(const char *test_name,
         }
     } else {
         // fill h_counts and print
-        cudaMemcpy(h_counts, d_counts, M * sizeof(unsigned int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_counts, d_counts, M * sizeof(uint32_t), cudaMemcpyDeviceToHost);
         auto total = std::accumulate(h_counts, h_counts+M, 0u);
-#ifdef PRINT_OUTPUT
-        printf("Output (total: %u):\n", total);
-        print_counts(h_counts);
-#endif
     }
 }
 
@@ -161,22 +138,22 @@ static void process_results(const char *test_name,
 static void ejercicio1(const char *fname)
 {
     int *d_message, *h_message;
-    unsigned int *d_counts;
-    unsigned int h_counts[M] = {0};
+    uint32_t *d_counts;
+    uint32_t h_counts[M] = {0};
 
     const auto length = read_file(fname, &h_message);
     printf("File size: %u\n", length);
 
     CUDA_CHK(cudaMalloc(&d_message, length * sizeof(int)));
     CUDA_CHK(cudaMemcpy(d_message, h_message, length * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHK(cudaMalloc(&d_counts, M * sizeof(unsigned int)));
+    CUDA_CHK(cudaMalloc(&d_counts, M * sizeof(uint32_t)));
 
     { // simple kernel
         Metric metric;
-        for (auto i = 0; i < 100; ++i) {
+        for (auto i = 0; i < BENCH_TIMES; ++i) {
             dim3 dimGrid(ceilx((double)length/BLOCK_SIZE), 1, 1);
             dim3 dimBlock(BLOCK_SIZE, 1, 1);
-            CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(unsigned int)));
+            CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
             auto t = metric.track_begin();
             count_occurrences<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
             CUDA_CHK(cudaGetLastError());
@@ -187,15 +164,15 @@ static void ejercicio1(const char *fname)
     }
 
     // note: block-size = 32 was too slow
-    constexpr unsigned int block_sizes[] = {64, 128, 256, 512, 1024};
+    constexpr uint32_t block_sizes[] = {64, 128, 256, 512, 1024};
 
     // shared memory kernel
     for (int block_size : block_sizes) {
         Metric metric;
-        for (auto i = 0; i < 100; ++i) {
+        for (auto i = 0; i < BENCH_TIMES; ++i) {
             dim3 dimGrid(ceilx((double)length/block_size), 1, 1);
             dim3 dimBlock(block_size, 1, 1);
-            CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(unsigned int)));
+            CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
             auto t = metric.track_begin();
             count_occurrences_shm<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
             CUDA_CHK(cudaGetLastError());
@@ -207,17 +184,17 @@ static void ejercicio1(const char *fname)
 
     // shared memory kernel with stride
 
-    constexpr unsigned int total_threads[] = {8192, 16384, 32768};
+    constexpr uint32_t total_threads[] = {8192, 16384, 32768};
 
     for (auto thread_count : total_threads) {
         std::string test_name = std::string{"Strided SHM Kernel"} + " (threads: " + std::to_string(thread_count) + ")";
         for (auto block_size : block_sizes) {
             Metric metric;
-            for (auto i = 0; i < 100; ++i) {
+            for (auto i = 0; i < BENCH_TIMES; ++i) {
                 auto num_blocks = thread_count / block_size;
                 dim3 dimGrid(num_blocks, 1, 1);
                 dim3 dimBlock(block_size, 1, 1);
-                CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(unsigned int)));
+                CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
                 auto t = metric.track_begin();
                 count_occurrences_shm_stride<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
                 CUDA_CHK(cudaGetLastError());
