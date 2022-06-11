@@ -14,7 +14,7 @@ echo "JOB: $JOB"
 counter=0
 while true; do
     status=$(scontrol show job "$JOB" | grep JobState | awk '{print $1}' | cut -d= -f2)
-    if [[ "$status" =~ ^(COMPLETED|FAILED|CANCELLED)$ ]]; then
+    if [[ "$status" =~ ^(COMPLETED|FAILED|CANCELLED|TIMEOUT|OUT_OF_MEMORY)$ ]]; then
         echo -e "\n$status"
         break
     fi

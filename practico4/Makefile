@@ -59,7 +59,7 @@ run: build
 prof: NVCCFLAGS:=$(NVCCFLAGS) -DBENCH_TIMES=1
 prof: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" nvprof \
-	-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency \
+	-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency,shared_efficiency \
 	$(shell readlink -f $(OUTPUT_FILE)) $(ARGS)
 
 ## -m gld_transactions,dram_read_transactions,

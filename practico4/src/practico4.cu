@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     const char *part = nullptr;
     if (argc > 1 && strcmp(argv[1], "-h") == 0) {
         printf("Usage: %s [part] [file.txt]\n\t ; part = 1|2|3|4\n"
-                "\t file.txt es necesario para el ejercicio 1",
+                "\t file.txt es necesario para el ejercicio 1\n",
                 argv[0]);
         return 0;
     }

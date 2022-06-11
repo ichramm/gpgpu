@@ -26,9 +26,12 @@ __global__ void sum_col_block(int * data, int length){
     data[idy*n+idx]=col_sum;
 }
 
-// FIXME: aun no cambié nada
+
 __global__ void sum_col_block_2(int * data, int length){
-    __shared__ int sh_tile[TSZ][TSZ];
+    // prevent bank conflict between
+    // * sh_tile[threadIdx.x][N]
+    // * sh_tile[threadIdx.x+M][N]
+    __shared__ int sh_tile[TSZ][TSZ+1];
 
     int n = gridDim.x * blockDim.x;
     int idx = blockIdx.x * blockDim.x+threadIdx.x;
@@ -55,10 +58,9 @@ __global__ void cmp_kernel(int * data1, int *data2, int length, int *ndiff) {
 }
 
 void ejercicio4() {
-    constexpr int width = 8192;
+    constexpr int width = 2*8192;
     constexpr int block_width = 32;
     constexpr int grid_witdh = width / block_width;
-    constexpr int shared_mem_size = sizeof(int) * block_width * block_width;
     constexpr int N = width * width;
 
     int *d_data1, *d_data2;
@@ -75,35 +77,30 @@ void ejercicio4() {
 
     { // provided kernel
         Metric m;
-        dim3 dimGrid(grid_witdh, grid_witdh);
-        dim3 dimBlock(block_width, block_width);
-        auto t = m.track_begin();
-        sum_col_block<<<dimGrid, dimBlock, shared_mem_size>>>(d_data1, N);
-        m.track_end(t);
-        printf("Kernel 1 - Time: %f\n", m.total());
+        for (auto i = 0; i < BENCH_TIMES; ++i) {
+            dim3 dimGrid(grid_witdh, grid_witdh);
+            dim3 dimBlock(block_width, block_width);
+            auto t = m.track_begin();
+            sum_col_block<<<dimGrid, dimBlock>>>(d_data1, N);
+            m.track_end(t);
+        }
+        printf("Kernel 1: mean: %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
     }
 
     { // improved kernel
         Metric m;
-        dim3 dimGrid(grid_witdh, grid_witdh);
-        dim3 dimBlock(block_width, block_width);
-        auto t = m.track_begin();
-        sum_col_block_2<<<dimGrid, dimBlock, shared_mem_size>>>(d_data2, N);
-        m.track_end(t);
-        printf("Kernel 2 - Time: %f\n", m.total());
+        for (auto i = 0; i < BENCH_TIMES; ++i) {
+            dim3 dimGrid(grid_witdh, grid_witdh);
+            dim3 dimBlock(block_width, block_width);
+            auto t = m.track_begin();
+            sum_col_block_2<<<dimGrid, dimBlock>>>(d_data2, N);
+            m.track_end(t);
+        }
+        printf("Kernel 2: mean: %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
     }
 
-    { // compare
-        int h_diff;
-        int *d_diff;
-        cudaMalloc(&d_diff, sizeof(int));
-        dim3 dimGrid(grid_witdh, grid_witdh);
-        dim3 dimBlock(block_width, block_width);
-        cmp_kernel<<<dimGrid, dimBlock>>>(d_data1, d_data2, N, d_diff);
-        cudaMemcpy(&h_diff, d_diff, sizeof(int), cudaMemcpyDeviceToHost);
-        printf("Cmp Result: %d\n", h_diff);
-        cudaFree(d_diff);
-    }
+    int h_diff = gpu_compare_arrays(d_data1, d_data2, N);
+    printf("Cmp Result: %d\n", h_diff);
 
     cudaFree(d_data2);
     cudaFree(d_data1);

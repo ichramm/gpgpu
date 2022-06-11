@@ -11,7 +11,6 @@
 #include <numeric>
 #include <cstring>
 
-
 // constantes necesarias del práctico 2
 static constexpr int M = 256;
 
@@ -30,7 +29,7 @@ __global__ void count_occurrences(const int* __restrict__ d_message,
 }
 
 /*!
- * \brief Kernel del ejercicio del práctico 2 que hace uso de memoria compartida.
+ * \brief Kernel funcionalmente igual al anterior, pero que hace uso de memoria compartida.
  */
 __global__ void count_occurrences_shm(const int* __restrict__ d_message,
                                       uint32_t length,
@@ -92,6 +91,9 @@ __global__ void count_occurrences_shm_stride(const int* __restrict__ d_message,
     }
 }
 
+/*!
+ * Imprime resultados incorrectos
+ */
 static void print_offending_counts(uint32_t *counts,
                                    uint32_t *ground_truth,
                                    uint32_t sum_total,
@@ -105,6 +107,9 @@ static void print_offending_counts(uint32_t *counts,
     }
 }
 
+/*!
+ * Compara los resultados de un Kernel contra los del practico 2
+ */
 static void process_results(const char *test_name,
                             uint32_t block_size,
                             Metric m,
@@ -116,21 +121,20 @@ static void process_results(const char *test_name,
     printf("%s (BLSZ=%u) - mean: %f ms, stdev: %f, CV: %f\n", test_name, block_size, m.mean(), m.stdev(), m.cv());
 
     // tricky: if validate = true, then h_counts contains the ground truth
-    if (validate) {
-        // copy to local array and compare to h_counts
-        uint32_t temp_counts[M];
-        cudaMemcpy(temp_counts, d_counts, M * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        auto total = std::accumulate(temp_counts, temp_counts+M, 0u);
-        if (total != msg_length || std::memcmp(h_counts, temp_counts, M * sizeof(uint32_t))) {
-            printf("\tERROR: counts don't match\n");
-            print_offending_counts(temp_counts, h_counts, total, msg_length);
-        } else {
-            printf("\tOK\n");
-        }
-    } else {
-        // fill h_counts and print
+    if (false == validate) {
         cudaMemcpy(h_counts, d_counts, M * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        auto total = std::accumulate(h_counts, h_counts+M, 0u);
+        return;
+    }
+
+    // copy to local array and compare to h_counts
+    uint32_t temp_counts[M];
+    cudaMemcpy(temp_counts, d_counts, M * sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    auto total = std::accumulate(temp_counts, temp_counts+M, 0u);
+    if (total != msg_length || std::memcmp(h_counts, temp_counts, M * sizeof(uint32_t))) {
+        printf("\tERROR: counts don't match\n");
+        print_offending_counts(temp_counts, h_counts, total, msg_length);
+    } else {
+        printf("\tOK\n");
     }
 }
 
@@ -149,59 +153,55 @@ static void ejercicio1(const char *fname)
     CUDA_CHK(cudaMalloc(&d_counts, M * sizeof(uint32_t)));
 
     { // simple kernel
-        Metric metric;
+        Metric m;
         for (auto i = 0; i < BENCH_TIMES; ++i) {
             dim3 dimGrid(ceilx((double)length/BLOCK_SIZE), 1, 1);
             dim3 dimBlock(BLOCK_SIZE, 1, 1);
             CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
-            auto t = metric.track_begin();
+            auto t = m.track_begin();
             count_occurrences<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
             CUDA_CHK(cudaGetLastError());
             CUDA_CHK(cudaDeviceSynchronize());
-            metric.track_end(t);
+            m.track_end(t);
         }
-        process_results("Simple Kernel", BLOCK_SIZE, metric, length, d_counts, h_counts);
+        process_results("Simple Kernel", BLOCK_SIZE, m, length, d_counts, h_counts);
     }
 
-    // note: block-size = 32 was too slow
-    constexpr uint32_t block_sizes[] = {64, 128, 256, 512, 1024};
-
     // shared memory kernel
+    uint32_t block_sizes[] = {64, 128, 256, 512, 1024}; // note: block-size = 32 was too slow
     for (int block_size : block_sizes) {
-        Metric metric;
+        Metric m;
         for (auto i = 0; i < BENCH_TIMES; ++i) {
             dim3 dimGrid(ceilx((double)length/block_size), 1, 1);
             dim3 dimBlock(block_size, 1, 1);
             CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
-            auto t = metric.track_begin();
+            auto t = m.track_begin();
             count_occurrences_shm<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
             CUDA_CHK(cudaGetLastError());
             CUDA_CHK(cudaDeviceSynchronize());
-            metric.track_end(t);
+            m.track_end(t);
         }
-        process_results("SHM Kernel", block_size, metric, length, d_counts, h_counts, true);
+        process_results("SHM Kernel", block_size, m, length, d_counts, h_counts, true);
     }
 
     // shared memory kernel with stride
-
-    constexpr uint32_t total_threads[] = {8192, 16384, 32768};
-
+    uint32_t total_threads[] = {8192, 16384, 32768};
     for (auto thread_count : total_threads) {
         std::string test_name = std::string{"Strided SHM Kernel"} + " (threads: " + std::to_string(thread_count) + ")";
         for (auto block_size : block_sizes) {
-            Metric metric;
+            Metric m;
             for (auto i = 0; i < BENCH_TIMES; ++i) {
                 auto num_blocks = thread_count / block_size;
                 dim3 dimGrid(num_blocks, 1, 1);
                 dim3 dimBlock(block_size, 1, 1);
                 CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
-                auto t = metric.track_begin();
+                auto t = m.track_begin();
                 count_occurrences_shm_stride<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
                 CUDA_CHK(cudaGetLastError());
                 CUDA_CHK(cudaDeviceSynchronize());
-                metric.track_end(t);
+                m.track_end(t);
             }
-            process_results(test_name.c_str(), block_size, metric, length, d_counts, h_counts, true);
+            process_results(test_name.c_str(), block_size, m, length, d_counts, h_counts, true);
         }
     }
 

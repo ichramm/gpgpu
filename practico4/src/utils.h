@@ -24,6 +24,8 @@
 // should use cudaDeviceProp.warpSize but it is unlikely to change
 #define WARP_SIZE (32u)
 
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 #define CUDA_CHK(ans) gpuAssert((ans), __FILE__, __LINE__)
 
 #define PRINT_DIM(dim) do {\
@@ -173,6 +175,27 @@ static uint32_t read_file(const char * fname, int** input)
 
     fclose(f);
     return length;
+}
+
+template <typename T>
+__global__ void cmp_kernelT(T * data1, T *data2, unsigned int length, int *ndiff) {
+    auto idx= blockIdx.x *blockDim.x + threadIdx.x;
+    if (idx < length && data1[idx] != data2[idx]) {
+        atomicAdd(ndiff, 1);
+    }
+}
+
+template <typename T>
+int gpu_compare_arrays(T *a, T *b, unsigned int size)
+{
+    int h_diff;
+    int *d_diff;
+    cudaMalloc(&d_diff, sizeof(int));
+    cudaMemset(d_diff, 0, sizeof(int));
+    cmp_kernelT<T><<<ceilx(size/1024), 1024>>>(a, b, size, d_diff);
+    cudaMemcpy(&h_diff, d_diff, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_diff);
+    return h_diff;
 }
 
 #endif // UTILS_H__
