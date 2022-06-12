@@ -27,10 +27,7 @@ __global__ void sum_col_block(int * data, int length){
 }
 
 
-__global__ void sum_col_block_2(int * data, int length){
-    // prevent bank conflict between
-    // * sh_tile[threadIdx.x][N]
-    // * sh_tile[threadIdx.x+M][N]
+__global__ void sum_col_block_2(int * data, int length) {
     __shared__ int sh_tile[TSZ][TSZ+1];
 
     int n = gridDim.x * blockDim.x;
