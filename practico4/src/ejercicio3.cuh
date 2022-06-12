@@ -49,10 +49,10 @@ __global__ void block_perm_shm(int * data, const int * __restrict__ perm, int le
 
 template <int LenLog2> void ejercicio3_impl()
 {
-    constexpr int length = (1 << LenLog2);
-    constexpr int block_size = 256;
-    constexpr int grid_size = length / block_size;
-    constexpr int shared_mem_size = sizeof(int) * block_size;
+    constexpr unsigned int length = (1 << LenLog2);
+    constexpr unsigned int block_size = 256;
+    constexpr unsigned int grid_size = length / block_size;
+    constexpr unsigned int shared_mem_size = sizeof(int) * block_size;
 
     std::srand(35141);
 

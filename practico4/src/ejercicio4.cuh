@@ -78,8 +78,8 @@ void ejercicio4() {
     { // provided kernel
         Metric m;
         for (auto i = 0; i < BENCH_TIMES; ++i) {
-            dim3 dimGrid(grid_witdh, grid_witdh);
-            dim3 dimBlock(block_width, block_width);
+            dim3 dimGrid{grid_witdh, grid_witdh};
+            dim3 dimBlock{block_width, block_width};
             auto t = m.track_begin();
             sum_col_block<<<dimGrid, dimBlock>>>(d_data1, N);
             m.track_end(t);
@@ -90,8 +90,8 @@ void ejercicio4() {
     { // improved kernel
         Metric m;
         for (auto i = 0; i < BENCH_TIMES; ++i) {
-            dim3 dimGrid(grid_witdh, grid_witdh);
-            dim3 dimBlock(block_width, block_width);
+            dim3 dimGrid{grid_witdh, grid_witdh};
+            dim3 dimBlock{block_width, block_width};
             auto t = m.track_begin();
             sum_col_block_2<<<dimGrid, dimBlock>>>(d_data2, N);
             m.track_end(t);

@@ -169,12 +169,12 @@ static void ejercicio1(const char *fname)
 
     // shared memory kernel
     uint32_t block_sizes[] = {64, 128, 256, 512, 1024}; // note: block-size = 32 was too slow
-    for (int block_size : block_sizes) {
+    for (auto block_size : block_sizes) {
         Metric m;
         for (auto i = 0; i < BENCH_TIMES; ++i) {
-            dim3 dimGrid(ceilx((double)length/block_size), 1, 1);
-            dim3 dimBlock(block_size, 1, 1);
             CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
+            dim3 dimGrid{ceilx((double)length/block_size)};
+            dim3 dimBlock{block_size};
             auto t = m.track_begin();
             count_occurrences_shm<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
             CUDA_CHK(cudaGetLastError());
@@ -191,10 +191,10 @@ static void ejercicio1(const char *fname)
         for (auto block_size : block_sizes) {
             Metric m;
             for (auto i = 0; i < BENCH_TIMES; ++i) {
-                auto num_blocks = thread_count / block_size;
-                dim3 dimGrid(num_blocks, 1, 1);
-                dim3 dimBlock(block_size, 1, 1);
                 CUDA_CHK(cudaMemset(d_counts, 0, M * sizeof(uint32_t)));
+                auto num_blocks = thread_count / block_size;
+                dim3 dimGrid{num_blocks, 1, 1};
+                dim3 dimBlock{block_size, 1, 1};
                 auto t = m.track_begin();
                 count_occurrences_shm_stride<<<dimGrid, dimBlock>>>(d_message, length, d_counts);
                 CUDA_CHK(cudaGetLastError());
