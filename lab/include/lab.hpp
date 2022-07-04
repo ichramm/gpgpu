@@ -5,7 +5,7 @@
 #ifndef LAB_HPP__
 #define LAB_HPP__
 
-#include "utils.h"
+#include "utils.hpp"
 
 typedef int value_type;
 

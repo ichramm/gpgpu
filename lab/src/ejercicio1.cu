@@ -1,5 +1,5 @@
 /*!
- * \file ejercicio1.cuh
+ * \file ejercicio1.cu
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
 #include <iostream>

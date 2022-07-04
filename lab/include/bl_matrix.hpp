@@ -48,29 +48,6 @@ public:
         assert((columns & (block_width-1)) == 0);
     }
 
-    value_type get(uint32_t row, uint32_t column) const {
-        auto block_y = row / block_width;
-        auto block_x = column / block_width;
-        auto block_i = row % block_width;
-        auto block_j = column % block_width;
-
-        auto col_it_begin = bl_col_indices.begin() + bl_row_pointers[block_y];
-        auto col_it_end = bl_col_indices.begin() + bl_row_pointers[block_y+1];
-        auto it = std::lower_bound(col_it_begin, col_it_end, block_x);
-
-        if (it != col_it_end && *it == block_x) {
-            auto block_idx = it - bl_col_indices.begin();
-            auto bitmap = bl_bitmaps[block_idx];
-            auto bit = 1ULL << ((block_width*block_width) - (block_i*block_width + block_j) - 1);
-            if (bitmap & bit) {
-                auto offset = __builtin_popcountll(bitmap - (bitmap&(bit+bit-1)));
-                return values[bl_starts[block_idx] + offset];
-            }
-        }
-
-        return 0;
-    }
-
     BLMatrix(uint32_t r,
               uint32_t c,
               std::vector<value_type> vals,
@@ -92,6 +69,32 @@ public:
         assert(bl_starts.size() == bl_bitmaps.size() + 1);
         assert(bl_col_indices.size() == bl_bitmaps.size());
         assert(bl_row_pointers.size() == bl_bitmaps.size() / block_width + 1);
+    }
+
+    value_type get(uint32_t row, uint32_t column) const {
+        assert(row < rows);
+        assert(column < columns);
+
+        auto block_y = row / block_width;
+        auto block_x = column / block_width;
+        auto block_i = row % block_width;
+        auto block_j = column % block_width;
+
+        auto col_it_begin = bl_col_indices.begin() + bl_row_pointers[block_y];
+        auto col_it_end = bl_col_indices.begin() + bl_row_pointers[block_y+1];
+        auto it = std::lower_bound(col_it_begin, col_it_end, block_x);
+
+        if (it != col_it_end && *it == block_x) {
+            auto block_idx = it - bl_col_indices.begin();
+            auto bitmap = bl_bitmaps[block_idx];
+            auto bit = 1ULL << ((block_width*block_width) - (block_i*block_width + block_j) - 1);
+            if (bitmap & bit) {
+                auto offset = __builtin_popcountll(bitmap - (bitmap&(bit+bit-1)));
+                return values[bl_starts[block_idx] + offset];
+            }
+        }
+
+        return 0;
     }
 
     void random_init(float non_zero_prob = 0.05,  value_type max = 100) {

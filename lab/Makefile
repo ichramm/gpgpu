@@ -34,7 +34,7 @@ else
 	NVCCFLAGS :=$(NVCCFLAGS) -O3 -lineinfo
 endif
 
-OBJS=$(OBJS_DIR)/main.o $(OBJS_DIR)/ejercicio1.o $(OBJS_DIR)/ejercicio2.o $(OBJS_DIR)/ejercicio3.o
+OBJS=$(OBJS_DIR)/main.o $(OBJS_DIR)/ejercicio1.cuobj $(OBJS_DIR)/ejercicio2.cuobj $(OBJS_DIR)/ejercicio3.cuobj
 
 # default target
 build: $(OUTPUT_FILE)
@@ -49,6 +49,9 @@ $(OBJS_DIR):
 
 $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(NVCC) -x cu $(INCLUDES) -dc "$<" -o "$(OBJS_DIR)/$(*F).o"
+
+$(OBJS_DIR)/%.cuobj: $(SRC_DIR)/%.cu
+	$(NVCC) -x cu $(INCLUDES) -dc "$<" -o "$(OBJS_DIR)/$(*F).cuobj"
 
 .PHONY: clean
 clean:

@@ -1,5 +1,5 @@
 /*!
- * \file practico4.cu
+ * \file main.cpp
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
 #include "lab.hpp"

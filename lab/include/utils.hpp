@@ -1,5 +1,5 @@
 /*!
- * \file utils.h
+ * \file utils.hpp
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
 #ifndef UTILS_HPP__

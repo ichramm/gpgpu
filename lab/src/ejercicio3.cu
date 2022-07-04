@@ -1,5 +1,5 @@
 /*!
- * \file ejercicio3.cuh
+ * \file ejercicio3.cu
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
 #ifndef EJERCICIO3_CUH__
