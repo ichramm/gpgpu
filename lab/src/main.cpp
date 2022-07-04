@@ -2,14 +2,7 @@
  * \file practico4.cu
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
-#include "lab.h"
-
-#include "ejercicio1.cuh"
-#include "ejercicio2.cuh"
-#include "ejercicio3.cuh"
-
-#include <cstdlib>
-
+#include "lab.hpp"
 
 int main(int argc, char *argv[]) {
     const char *part = nullptr;
@@ -20,7 +13,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    sgenrand(35141);
+    std::srand(35141);
 
     // GTX 1650 prints 7.5 and 1024
     print_device_capabilities();

@@ -2,17 +2,16 @@
 ## GPGPU
 PROJECT=lab
 
-ROOT_DIR   =.
-SRC_DIR    =$(ROOT_DIR)/src
-BIN_DIR    =$(ROOT_DIR)/build/bin
+ROOT_DIR    =.
+INCLUDE_DIR =$(ROOT_DIR)/include
+SRC_DIR     =$(ROOT_DIR)/src
+BIN_DIR     =$(ROOT_DIR)/build/bin
 
 OBJS_ROOT  =$(ROOT_DIR)/build/objs
 OBJS_DIR   =$(OBJS_ROOT)
 
 OUTPUT_DIR  =$(BIN_DIR)
 OUTPUT_FILE =$(OUTPUT_DIR)/$(PROJECT)
-
-OBJS = $(OBJS_DIR)/lab.oc
 
 ifeq ($(shell test -e /usr/local/cuda/bin/nvcc && echo -n yes),yes)
 	NVCC=/usr/local/cuda/bin/nvcc
@@ -25,6 +24,7 @@ endif
 
 $(info Using cuda compiler $(NVCC))
 
+INCLUDES =-I$(INCLUDE_DIR)
 NVCCFLAGS:=$(NVCCFLAGS) --compiler-options -Wall --compiler-options -Wextra -std=c++11 -g -lcurand
 #-ccbin clang-8
 
@@ -34,21 +34,25 @@ else
 	NVCCFLAGS :=$(NVCCFLAGS) -O3 -lineinfo
 endif
 
-SOURCES=$(SRC_DIR)/lab.cu $(SRC_DIR)/lab.h $(SRC_DIR)/utils.h \
-	$(SRC_DIR)/ejercicio1.cuh $(SRC_DIR)/ejercicio2.cuh \
-	$(SRC_DIR)/ejercicio3.cuh
+OBJS=$(OBJS_DIR)/main.o $(OBJS_DIR)/ejercicio1.o $(OBJS_DIR)/ejercicio2.o $(OBJS_DIR)/ejercicio3.o
 
 # default target
 build: $(OUTPUT_FILE)
-$(OUTPUT_FILE): $(OUTPUT_DIR) $(SOURCES)
-	$(NVCC) $(NVCCFLAGS) $(SRC_DIR)/lab.cu -o $(OUTPUT_FILE)
+$(OUTPUT_FILE): $(OBJS_DIR) $(OUTPUT_DIR) $(OBJS)
+	$(NVCC) $(OBJS) -o $(OUTPUT_FILE)
 
 $(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
 
+$(OBJS_DIR):
+	mkdir -p $(OBJS_DIR)
+
+$(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(NVCC) -x cu $(INCLUDES) -dc "$<" -o "$(OBJS_DIR)/$(*F).o"
+
 .PHONY: clean
 clean:
-	rm -vf $(OBJS_ROOT)/**/*.o
+	rm -vf $(OBJS_ROOT)/*.o
 	rm -vf $(OUTPUT_FILE)
 
 .PHONY: run
@@ -65,3 +69,6 @@ prof: build
 ## -m gld_transactions,dram_read_transactions,
 ## l2_read_transactions,l2_tex_read_transactions,
 ## local_load_transactions,local_load_transactions
+# SOURCES=$(SRC_DIR)/lab.cu $(SRC_DIR)/lab.h $(SRC_DIR)/utils.h $(SRC_DIR)/bl_matrix.hpp $(SRC_DIR)/csr_matrix.hpp \
+# 	$(SRC_DIR)/ejercicio1.cuh $(SRC_DIR)/ejercicio2.cuh \
+# 	$(SRC_DIR)/ejercicio3.cuh

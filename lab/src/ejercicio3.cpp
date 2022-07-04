@@ -5,7 +5,7 @@
 #ifndef EJERCICIO3_CUH__
 #define EJERCICIO3_CUH__
 
-#include "lab.h"
+#include "lab.hpp"
 
 void ejercicio3() {
 }

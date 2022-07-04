@@ -1,26 +1,26 @@
 /*!
- * \file csr.hpp
+ * \file csr_matrix.hpp
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
-#ifndef CSR_HPP__
-#define CSR_HPP__
+#ifndef CSR_MATRIX_HPP__
+#define CSR_MATRIX_HPP__
 
 #include <vector>
-#include <array>
+#include <iomanip>
+#include <cuda_device_runtime_api.h>
 
-#include "utils.h"
-
-template <typename Value_Type>
+template<typename T>
 class CSRMatrix {
 public:
-    typedef Value_Type value_type;
+    typedef T value_type;
+
     uint32_t rows;
     uint32_t columns;
     std::vector<value_type> values;
     std::vector<uint32_t> col_indices;
     std::vector<uint32_t> row_pointers;
 
-    struct DeviceCSRMatrix {
+    struct DeviceStruct {
         uint32_t rows;
         value_type *values;
         uint32_t *col_indices;
@@ -47,9 +47,24 @@ public:
         assert(row_pointers.size() == rows+1);
     }
 
+    value_type get(uint32_t row, uint32_t column) const {
+        assert(row < rows);
+        assert(column < columns);
+        uint32_t start = row_pointers[row];
+        uint32_t end = row_pointers[row+1];
+        for (uint32_t i = start; i < end; i++) {
+            if (col_indices[i] == column) {
+                return values[i];
+            }
+        }
+        return 0;
+    }
+
     void random_init(float non_zero_prob = 0.05,  value_type max = 100) {
-        values.reserve(static_cast<size_t>(non_zero_prob*rows*columns));
-        col_indices.reserve(static_cast<size_t>(non_zero_prob*rows*columns));
+        // of course this is an approximation
+        auto non_null = static_cast<size_t>(non_zero_prob*rows*columns);
+        values.reserve(static_cast<size_t>(non_null));
+        col_indices.reserve(static_cast<size_t>(non_null));
         row_pointers.reserve(rows+1);
 
         uint32_t counter = 0;
@@ -57,8 +72,8 @@ public:
         row_pointers.push_back(0);
         for (uint32_t i = 0; i < rows; ++i) {
             for (uint32_t j = 0; j < columns; ++j) {
-                if (genrand() <= non_zero_prob) {
-                    values.push_back(static_cast<value_type>(genrand() * max));
+                if (rand_unif() < non_zero_prob) {
+                    values.push_back(static_cast<value_type>(rand() % max));
                     col_indices.push_back(j);
                     ++counter;
                 }
@@ -67,8 +82,8 @@ public:
         }
     }
 
-    DeviceCSRMatrix to_device() {
-        DeviceCSRMatrix dMat;
+    DeviceStruct to_device() {
+        DeviceStruct dMat;
         dMat.rows = rows;
         cudaMalloc(&dMat.values, values.size()*sizeof(value_type));
         cudaMalloc(&dMat.col_indices, col_indices.size()*sizeof(uint32_t));
@@ -80,11 +95,25 @@ public:
         return dMat;
     }
 
-    void device_free(DeviceCSRMatrix dMat) {
+    void device_free(DeviceStruct dMat) {
         cudaFree(dMat.values);
         cudaFree(dMat.col_indices);
         cudaFree(dMat.row_pointers);
     }
 };
 
-#endif // CSR_HPP__
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const CSRMatrix<T>& m) {
+    auto w = os.width();
+    for (uint32_t i = 0; i < m.rows; ++i) {
+        for (uint32_t j = 0; j < m.columns; ++j) {
+            os << std::setw(3) << m.get(i, j) << " ";
+            m.get(i, j);
+        }
+        os << std::endl;
+    }
+    os.width(w);
+    return os;
+}
+
+#endif // CSR_MATRIX_HPP__

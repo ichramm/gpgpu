@@ -2,10 +2,8 @@
  * \file utils.h
  * \author Juan Ramirez (juan.ramirez@fing.edu.uy)
  */
-#ifndef UTILS_H__
-#define UTILS_H__
-
-#include "mt19937.h"
+#ifndef UTILS_HPP__
+#define UTILS_HPP__
 
 //#include <cuda.h>
 #include <assert.h>
@@ -13,12 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sys/time.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <iostream>
 
 #include <cuda.h>
 #include <curand.h>
@@ -216,4 +215,4 @@ template <typename T> uint32_t gpu_compare_arrays(T *a, T *b, uint32_t size) {
     return h_diff;
 }
 
-#endif // UTILS_H__
+#endif // UTILS_HPP__
