@@ -14,7 +14,8 @@
  */
 __host__ void ser_spmv_kernel_host(const CSRMatrix<value_type>& mat,
                                    const value_type * __restrict__ x,
-                                      value_type *y) {
+                                      value_type *y)
+{
     for (auto i = 0u; i < mat.rows; ++i) {
         value_type acc  =0;
         for (auto j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
@@ -29,7 +30,8 @@ __host__ void ser_spmv_kernel_host(const CSRMatrix<value_type>& mat,
  */
 __global__ void ser_spmv_kernel_device(CSRMatrix<value_type>::DeviceStruct mat,
                                        const value_type * __restrict__ x,
-                                       value_type *y) {
+                                       value_type *y)
+{
     for (auto i = 0u; i < mat.rows; ++i) {
         value_type acc  =0;
         for (auto j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
@@ -44,7 +46,8 @@ __global__ void ser_spmv_kernel_device(CSRMatrix<value_type>::DeviceStruct mat,
  */
 __global__ void par_spmv_kernel1(CSRMatrix<value_type>::DeviceStruct mat,
                                  const value_type * __restrict__ x,
-                                 value_type *y) {
+                                 value_type *y)
+{
     // 1D grid of 1D blocks
     auto row = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -66,7 +69,8 @@ __global__ void par_spmv_kernel1(CSRMatrix<value_type>::DeviceStruct mat,
  */
 __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
                                  const value_type * __restrict__ x,
-                                 value_type *y) {
+                                 value_type *y)
+{
     __shared__ value_type row_total;
 
     if (threadIdx.x == 0) {
@@ -100,7 +104,8 @@ __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
  */
 __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
                                  const value_type * __restrict__ x,
-                                 value_type *y) {
+                                 value_type *y)
+{
     __shared__ value_type partials[BLOCK_SIZE];
 
     uint32_t row = blockIdx.x;
@@ -134,7 +139,8 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
  */
 __global__ void par_spmv_kernel4(CSRMatrix<value_type>::DeviceStruct mat,
                                  const value_type * __restrict__ x,
-                                 value_type *y) {
+                                 value_type *y)
+{
     uint32_t thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t row = thread_id / 32; // warpSize
     uint32_t lane = thread_id & 31u;
@@ -167,7 +173,8 @@ bool validate_results(const char *name,
                       value_type *d_out,
                       uint32_t N,
                       bool silent = false,
-                      bool print_vect = true) {
+                      bool print_vect = true)
+{
     if (auto ndiff = gpu_compare_arrays(d_expectedResult, d_out, N)) {
         value_type *h_out = new value_type[N];
         cudaMemcpy(h_out, d_out, sizeof(h_out), cudaMemcpyDeviceToHost);
@@ -189,7 +196,8 @@ bool validate_results(const char *name,
 }
 
 
-static void initial_algorithm_test() {
+static void initial_kindergarten_test()
+{
     constexpr uint32_t N = 6;
     constexpr uint32_t C = 5;
 
@@ -250,7 +258,7 @@ static void initial_algorithm_test() {
 }
 
 void ejercicio1() {
-    initial_algorithm_test();
+    initial_kindergarten_test();
 
     const unsigned int ROWS = 10000u;
     const unsigned int COLUMNS = 9000u;

@@ -31,7 +31,8 @@ __host__ __device__ void build_dense_block(uint32_t block_column,
 template <typename value_type, size_t Block_Width>
 __host__ void serial_spmv_kernel_host(const BLMatrix<value_type, Block_Width>& mat,
                                       const value_type * __restrict__ x,
-                                      value_type *y) {
+                                      value_type *y)
+{
     for (auto i = 0u; i < mat.rows / Block_Width; ++i) {
         auto block_row = i * Block_Width;
         // j runs though the block columns in the current row
@@ -60,7 +61,7 @@ __host__ void serial_spmv_kernel_host(const BLMatrix<value_type, Block_Width>& m
 /////////////////////////////////
 
 
-static void initial_algorithm_test() {
+static void initial_kindergarten_test() {
     constexpr uint32_t rows = 6;
     constexpr uint32_t cols = 6;
 
@@ -96,5 +97,5 @@ static void initial_algorithm_test() {
 }
 
 void ejercicio2() {
-    initial_algorithm_test();
+    initial_kindergarten_test();
 }
