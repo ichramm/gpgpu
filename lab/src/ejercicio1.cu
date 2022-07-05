@@ -12,12 +12,12 @@
 /**
  * Serial SPMV algorithm. Runs in the Host.
  */
-__host__ void serial_spmv_kernel_host(const CSRMatrix<value_type>& mat,
-                                      value_type *x,
+__host__ void ser_spmv_kernel_host(const CSRMatrix<value_type>& mat,
+                                   const value_type * __restrict__ x,
                                       value_type *y) {
-    for (uint32_t i = 0; i < mat.rows; ++i) {
+    for (auto i = 0u; i < mat.rows; ++i) {
         value_type acc  =0;
-        for (uint32_t j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
+        for (auto j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
             acc += mat.values[j] * x[mat.col_indices[j]];
         }
         y[i] = acc;
@@ -27,12 +27,12 @@ __host__ void serial_spmv_kernel_host(const CSRMatrix<value_type>& mat,
 /**
  * Serial SPMV algorithm. Runs in the Device.
  */
-__global__ void serial_spmv_kernel_device(CSRMatrix<value_type>::DeviceStruct mat,
-                                          value_type *x,
-                                          value_type *y) { // already zeroed
-    for (uint32_t i = 0; i < mat.rows; ++i) {
+__global__ void ser_spmv_kernel_device(CSRMatrix<value_type>::DeviceStruct mat,
+                                       const value_type * __restrict__ x,
+                                       value_type *y) {
+    for (auto i = 0u; i < mat.rows; ++i) {
         value_type acc  =0;
-        for (uint32_t j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
+        for (auto j = mat.row_pointers[i], end = mat.row_pointers[i+1]; j < end; ++j) {
             acc += mat.values[j] * x[mat.col_indices[j]];
         }
         y[i] = acc;
@@ -43,19 +43,19 @@ __global__ void serial_spmv_kernel_device(CSRMatrix<value_type>::DeviceStruct ma
  * Parallel SPMV. One thread per row, no shared memory.
  */
 __global__ void par_spmv_kernel1(CSRMatrix<value_type>::DeviceStruct mat,
-                                 value_type *in,
-                                 value_type *out) {
+                                 const value_type * __restrict__ x,
+                                 value_type *y) {
     // 1D grid of 1D blocks
-    uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    auto row = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (row < mat.rows) {
         value_type acc  =0;
 
-        for (uint32_t j = mat.row_pointers[row], end = mat.row_pointers[row+1]; j < end; ++j) {
-            acc += mat.values[j] * in[mat.col_indices[j]];
+        for (auto j = mat.row_pointers[row], end = mat.row_pointers[row+1]; j < end; ++j) {
+            acc += mat.values[j] * x[mat.col_indices[j]];
         }
 
-        out[row] = acc;
+        y[row] = acc;
     }
 }
 
@@ -65,8 +65,8 @@ __global__ void par_spmv_kernel1(CSRMatrix<value_type>::DeviceStruct mat,
  * - Uses atomic operations to update the accumulator.
  */
 __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
-                                 value_type *in,
-                                 value_type *out) {
+                                 const value_type * __restrict__ x,
+                                 value_type *y) {
     __shared__ value_type row_total;
 
     if (threadIdx.x == 0) {
@@ -75,12 +75,12 @@ __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
 
     __syncthreads();
 
-    uint32_t row = blockIdx.x;
+    auto row = blockIdx.x;
 
     if (row < mat.rows) {
         value_type acc = 0;
-        for (uint32_t j = mat.row_pointers[row]+threadIdx.x, end = mat.row_pointers[row+1]; j < end; j += blockDim.x) {
-            acc += mat.values[j] * in[mat.col_indices[j]];
+        for (auto j = mat.row_pointers[row]+threadIdx.x, end = mat.row_pointers[row+1]; j < end; j += blockDim.x) {
+            acc += mat.values[j] * x[mat.col_indices[j]];
         }
         atomicAdd(&row_total, acc);
     }
@@ -88,7 +88,7 @@ __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
     __syncthreads();
 
     if (threadIdx.x == 0) {
-        out[row] = row_total;
+        y[row] = row_total;
     }
 }
 
@@ -99,8 +99,8 @@ __global__ void par_spmv_kernel2(CSRMatrix<value_type>::DeviceStruct mat,
  * - Performs reduce sum on shared memory
  */
 __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
-                                 value_type *in,
-                                 value_type *out) {
+                                 const value_type * __restrict__ x,
+                                 value_type *y) {
     __shared__ value_type partials[BLOCK_SIZE];
 
     uint32_t row = blockIdx.x;
@@ -108,7 +108,7 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
     if (row < mat.rows) {
         value_type acc = 0;
         for (uint32_t j = mat.row_pointers[row]+threadIdx.x, end = mat.row_pointers[row+1]; j < end; j += blockDim.x) {
-            acc += mat.values[j] * in[mat.col_indices[j]];
+            acc += mat.values[j] * x[mat.col_indices[j]];
         }
         partials[threadIdx.x] = acc;
     }
@@ -123,7 +123,7 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
     }
 
     if (threadIdx.x == 0) {
-        out[row] = partials[threadIdx.x];
+        y[row] = partials[threadIdx.x];
     }
 }
 
@@ -133,8 +133,8 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
  * - Parallel reduction using __shfl_down
  */
 __global__ void par_spmv_kernel4(CSRMatrix<value_type>::DeviceStruct mat,
-                                 value_type *in,
-                                 value_type *out) {
+                                 const value_type * __restrict__ x,
+                                 value_type *y) {
     uint32_t thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t row = thread_id / 32; // warpSize
     uint32_t lane = thread_id & 31u;
@@ -143,22 +143,27 @@ __global__ void par_spmv_kernel4(CSRMatrix<value_type>::DeviceStruct mat,
         value_type acc = 0;
 
         for (uint32_t j = mat.row_pointers[row]+lane, end = mat.row_pointers[row+1]; j < end; j += 32) {
-            acc += mat.values[j] * in[mat.col_indices[j]];
+            acc += mat.values[j] * x[mat.col_indices[j]];
         }
 
         __syncthreads();
 
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
+#if __CUDA_ARCH__ >= 300
+            acc += __shfl_down_sync(0xFFFFFFFF, acc, offset);
+#else
             acc += __shfl_down(acc, offset);
+#endif
         }
 
         if (lane == 0) {
-            out[row] = acc;
+            y[row] = acc;
         }
     }
 }
 
-bool validate_results(value_type *d_expectedResult,
+bool validate_results(const char *name,
+                      value_type *d_expectedResult,
                       value_type *d_out,
                       uint32_t N,
                       bool silent = false,
@@ -166,7 +171,7 @@ bool validate_results(value_type *d_expectedResult,
     if (auto ndiff = gpu_compare_arrays(d_expectedResult, d_out, N)) {
         value_type *h_out = new value_type[N];
         cudaMemcpy(h_out, d_out, sizeof(h_out), cudaMemcpyDeviceToHost);
-        std::cout << "Error: " << ndiff << " differences found" << std::endl;
+        std::cout << name << ": " << ndiff << " differences found" << std::endl;
         if (print_vect) {
             for (uint32_t i = 0; i < N; ++i) {
                 std::cout << " " << h_out[i];
@@ -177,22 +182,22 @@ bool validate_results(value_type *d_expectedResult,
         return false;
     } else {
         if (!silent) {
-            std::cout << "OK" << std::endl;
+            std::cout << name << ": OK" << std::endl;
         }
         return true;
     }
 }
 
 
-void initial_algorithm_test() {
+static void initial_algorithm_test() {
     constexpr uint32_t N = 6;
     constexpr uint32_t C = 5;
 
     std::vector<value_type> h_vals{{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}};
     std::vector<uint32_t> h_colIdx{{0, 1, 2, 4, 1, 2, 3, 4, 3, 1, 4}};
     std::vector<uint32_t> h_rowPtr{{0, 1, 4, 4, 8, 9, 11}}; // N+1 elements (last is out of vals's bounds)
-    value_type h_in[C] = {1, 1, 1, 1, 1};
-    value_type h_expectedResult[N] = {1, 9, 0, 26, 9, 21}; // column sum
+    value_type h_in[C] = {1, 2, 1, 1, 1};
+    value_type h_expectedResult[N] = {1, 11, 0, 31, 9, 31}; // column sum
 
     value_type *d_in, *d_out, *d_expectedResult;
 
@@ -212,34 +217,34 @@ void initial_algorithm_test() {
     auto dMat = mat.to_device();
 
     cudaMemset(d_out, 0, sizeof(value_type)*N);
-    serial_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
+    ser_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results(d_expectedResult, d_out, N);
+    validate_results("ser_spmv_kernel_device", d_expectedResult, d_out, N);
 
     cudaMemset(d_out, 0, sizeof(value_type)*N);
     par_spmv_kernel1<<<1, N>>>(dMat, d_in, d_out);
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results(d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel1", d_expectedResult, d_out, N);
 
     cudaMemset(d_out, 0, sizeof(value_type)*N);
     par_spmv_kernel2<<<N, 32>>>(dMat, d_in, d_out);
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results(d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel2", d_expectedResult, d_out, N);
 
     cudaMemset(d_out, 0, sizeof(value_type)*N);
     par_spmv_kernel3<<<N, 32>>>(dMat, d_in, d_out);
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results(d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel3", d_expectedResult, d_out, N);
 
     cudaMemset(d_out, 0, sizeof(value_type)*N);
     par_spmv_kernel4<<<N, 32>>>(dMat, d_in, d_out);
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results(d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel4", d_expectedResult, d_out, N);
 
     mat.device_free(dMat);
 }
@@ -280,7 +285,7 @@ void ejercicio1() {
             CUDA_CHK(cudaDeviceSynchronize());
             m.track_end(t);
             if (d_expectedResult) {
-                if (!validate_results(d_expectedResult, d_out, ROWS, true, false)) {
+                if (!validate_results(name.c_str(), d_expectedResult, d_out, ROWS, true, false)) {
                     break;
                 }
             }
@@ -289,7 +294,7 @@ void ejercicio1() {
     };
 
     run_kernel("Serial (GPU)", [&]() {
-        serial_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
+        ser_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
     }, nullptr, 1);
 
     // assume result of serial operatin as ground truth
@@ -297,7 +302,7 @@ void ejercicio1() {
     CUDA_CHK(cudaMemcpy(d_expectedResult, d_out, sizeof(value_type)*ROWS, cudaMemcpyDeviceToDevice));
 
     run_kernel("Serial (CPU)", [&]() {
-        serial_spmv_kernel_host(mat, h_in, h_out);
+        ser_spmv_kernel_host(mat, h_in, h_out);
     }, nullptr, 1);
 
     { // using h_out so it doesn't get optimized away

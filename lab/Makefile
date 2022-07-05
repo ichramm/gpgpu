@@ -25,21 +25,25 @@ endif
 $(info Using cuda compiler $(NVCC))
 
 INCLUDES =-I$(INCLUDE_DIR)
-NVCCFLAGS:=$(NVCCFLAGS) --compiler-options -Wall --compiler-options -Wextra -std=c++11 -g -lcurand
+NVCCFLAGS :=$(NVCCFLAGS) -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra
+NVLDFLAGS :=-g
+LIBRARIES :=-lcurand
 #-ccbin clang-8
 
 ifeq ($(dbg),1)
 	NVCCFLAGS :=$(NVCCFLAGS) -G
+	NVLDFLAGS :=$(NVLDFLAGS) -G
 else
 	NVCCFLAGS :=$(NVCCFLAGS) -O3 -lineinfo
+	NVLDFLAGS :=$(NVLDFLAGS) -O3 -lineinfo
 endif
 
-OBJS=$(OBJS_DIR)/main.o $(OBJS_DIR)/ejercicio1.cuobj $(OBJS_DIR)/ejercicio2.cuobj $(OBJS_DIR)/ejercicio3.cuobj
+OBJS=$(OBJS_DIR)/main.o $(OBJS_DIR)/ejercicio1.obj $(OBJS_DIR)/ejercicio2.obj $(OBJS_DIR)/ejercicio3.obj
 
 # default target
 build: $(OUTPUT_FILE)
 $(OUTPUT_FILE): $(OBJS_DIR) $(OUTPUT_DIR) $(OBJS)
-	$(NVCC) $(OBJS) -o $(OUTPUT_FILE)
+	$(NVCC) $(NVLDFLAGS) $(OBJS) $(LIBRARIES) -o $(OUTPUT_FILE)
 
 $(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
@@ -48,14 +52,14 @@ $(OBJS_DIR):
 	mkdir -p $(OBJS_DIR)
 
 $(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(NVCC) -x cu $(INCLUDES) -dc "$<" -o "$(OBJS_DIR)/$(*F).o"
+	$(NVCC) $(NVCCFLAGS) $(INCLUDES) "$<" -o "$(OBJS_DIR)/$(*F).o"
 
-$(OBJS_DIR)/%.cuobj: $(SRC_DIR)/%.cu
-	$(NVCC) -x cu $(INCLUDES) -dc "$<" -o "$(OBJS_DIR)/$(*F).cuobj"
+$(OBJS_DIR)/%.obj: $(SRC_DIR)/%.cu
+	$(NVCC) $(NVCCFLAGS) $(INCLUDES) "$<" -o "$(OBJS_DIR)/$(*F).obj"
 
 .PHONY: clean
 clean:
-	rm -vf $(OBJS_ROOT)/*.o
+	rm -vf $(OBJS_ROOT)/*.o $(OBJS_ROOT)/*.obj
 	rm -vf $(OUTPUT_FILE)
 
 .PHONY: run

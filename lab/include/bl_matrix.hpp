@@ -14,8 +14,8 @@ class BLMatrix {
 public:
     const size_t block_width = Block_Width;
 
-    uint32_t rows;
-    uint32_t columns;
+    const uint32_t rows;
+    const uint32_t columns;
 
     // non-null values, sorted by block-row, then block, then row
     std::vector<value_type> values;
@@ -49,12 +49,12 @@ public:
     }
 
     BLMatrix(uint32_t r,
-              uint32_t c,
-              std::vector<value_type> vals,
-              std::vector<uint32_t> starts,
-              std::vector<uint64_t> bitmaps,
-              std::vector<uint32_t> col_indices,
-              std::vector<uint32_t> row_pointers)
+             uint32_t c,
+             std::vector<value_type> vals,
+             std::vector<uint32_t> starts,
+             std::vector<uint64_t> bitmaps,
+             std::vector<uint32_t> col_indices,
+             std::vector<uint32_t> row_pointers)
      : rows(r)
      , columns(c)
      , values(std::move(vals))

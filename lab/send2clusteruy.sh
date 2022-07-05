@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # change this and only this
-FILES=(sbatch-wrapper.sh launch_single.sh Makefile input*.txt src);
+FILES=(sbatch-wrapper.sh launch_single.sh Makefile include src);
 
 DIR=$(basename "$(dirname "$(readlink -f "$0")")");
 
