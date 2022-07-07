@@ -97,7 +97,7 @@ public:
         return 0;
     }
 
-    void random_init(float non_zero_prob = 0.05,  value_type max = 100) {
+    void random_init(float non_zero_prob = 0.05, value_type max = 100) {
         // of course this is an approximation
         auto non_null = static_cast<size_t>(non_zero_prob*rows*columns);
         values.reserve(non_null);
@@ -118,7 +118,7 @@ public:
                 for (uint32_t i = 0; i < block_width; ++i) {
                     for (uint32_t j = 0; j < block_width; ++j) {
                         if (rand_unif() < non_zero_prob) {
-                            values.push_back(rand() % max);
+                            values.push_back(rand_unif() * max);
                             bitmap |= (1ULL << (i*block_width + j));
                         }
                     }

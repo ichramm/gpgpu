@@ -12,7 +12,7 @@
             "problemMatcher": [
                 "$nvcc"
             ],
-            "args": ["run", "dbg=0", "ARGS=2"]
+            "args": ["run", "dbg=0", "ARGS=3"]
         },
         {
             "label": "Clean",

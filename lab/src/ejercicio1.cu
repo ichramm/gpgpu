@@ -176,16 +176,16 @@ bool validate_results(const char *name,
                       bool print_vect = true)
 {
     if (auto ndiff = gpu_compare_arrays(d_expectedResult, d_out, N)) {
-        value_type *h_out = new value_type[N];
-        cudaMemcpy(h_out, d_out, sizeof(h_out), cudaMemcpyDeviceToHost);
+        value_type *h_vecY = new value_type[N];
+        cudaMemcpy(h_vecY, d_out, sizeof(h_vecY), cudaMemcpyDeviceToHost);
         std::cout << name << ": " << ndiff << " differences found" << std::endl;
         if (print_vect) {
             for (uint32_t i = 0; i < N; ++i) {
-                std::cout << " " << h_out[i];
+                std::cout << " " << h_vecY[i];
             }
             std::cout << std::endl;
         }
-        delete[] h_out;
+        delete[] h_vecY;
         return false;
     } else {
         if (!silent) {
@@ -198,61 +198,54 @@ bool validate_results(const char *name,
 
 static void initial_kindergarten_test()
 {
-    constexpr uint32_t N = 6;
-    constexpr uint32_t C = 5;
+    constexpr uint32_t rows = 6;
+    constexpr uint32_t columns = 5;
 
     std::vector<value_type> h_vals{{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}};
     std::vector<uint32_t> h_colIdx{{0, 1, 2, 4, 1, 2, 3, 4, 3, 1, 4}};
     std::vector<uint32_t> h_rowPtr{{0, 1, 4, 4, 8, 9, 11}}; // N+1 elements (last is out of vals's bounds)
-    value_type h_in[C] = {1, 2, 1, 1, 1};
-    value_type h_expectedResult[N] = {1, 11, 0, 31, 9, 31}; // column sum
-
-    value_type *d_in, *d_out, *d_expectedResult;
+    value_type h_vecX[columns] = {1, 2, 1, 1, 1};
+    value_type h_expectedResult[rows] = {1, 11, 0, 31, 9, 31}; // column sum
 
     CSRMatrix<value_type> mat{6u, 5u, h_vals, h_colIdx, h_rowPtr};
 
     std::cout << "Matrix:" << std::endl;
     std::cout << mat << std::endl;
 
-    CUDA_CHK(cudaMalloc(&d_in, sizeof(h_in)));
-    CUDA_CHK(cudaMemcpy(d_in, h_in, sizeof(h_in), cudaMemcpyHostToDevice));
-    CUDA_CHK(cudaMalloc(&d_out, sizeof(value_type)*N));
-    CUDA_CHK(cudaMemset(d_out, 0, sizeof(value_type)*N));
-
-    CUDA_CHK(cudaMalloc(&d_expectedResult, sizeof(h_expectedResult)));
-    CUDA_CHK(cudaMemcpy(d_expectedResult, h_expectedResult, sizeof(h_expectedResult), cudaMemcpyHostToDevice));
+    auto d_vecX = dev_alloc_fill(columns, h_vecX);
+    auto d_vecY = dev_alloc_zero<value_type>(rows);
+    auto d_expectedResult = dev_alloc_fill(rows, h_expectedResult);
 
     auto dMat = mat.to_device();
 
-    cudaMemset(d_out, 0, sizeof(value_type)*N);
-    ser_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
+    ser_spmv_kernel_device<<<1, 1>>>(dMat, d_vecX.get(), d_vecY.get());
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results("ser_spmv_kernel_device", d_expectedResult, d_out, N);
+    validate_results("ser_spmv_kernel_device", d_expectedResult.get(), d_vecY.get(), rows);
 
-    cudaMemset(d_out, 0, sizeof(value_type)*N);
-    par_spmv_kernel1<<<1, N>>>(dMat, d_in, d_out);
+    cudaMemset(d_vecY.get(), 0, sizeof(value_type)*rows);
+    par_spmv_kernel1<<<1, rows>>>(dMat, d_vecX.get(), d_vecY.get());
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results("par_spmv_kernel1", d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel1", d_expectedResult.get(), d_vecY.get(), rows);
 
-    cudaMemset(d_out, 0, sizeof(value_type)*N);
-    par_spmv_kernel2<<<N, 32>>>(dMat, d_in, d_out);
+    cudaMemset(d_vecY.get(), 0, sizeof(value_type)*rows);
+    par_spmv_kernel2<<<rows, 32>>>(dMat, d_vecX.get(), d_vecY.get());
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results("par_spmv_kernel2", d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel2", d_expectedResult.get(), d_vecY.get(), rows);
 
-    cudaMemset(d_out, 0, sizeof(value_type)*N);
-    par_spmv_kernel3<<<N, 32>>>(dMat, d_in, d_out);
+    cudaMemset(d_vecY.get(), 0, sizeof(value_type)*rows);
+    par_spmv_kernel3<<<rows, 32>>>(dMat, d_vecX.get(), d_vecY.get());
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results("par_spmv_kernel3", d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel3", d_expectedResult.get(), d_vecY.get(), rows);
 
-    cudaMemset(d_out, 0, sizeof(value_type)*N);
-    par_spmv_kernel4<<<N, 32>>>(dMat, d_in, d_out);
+    cudaMemset(d_vecY.get(), 0, sizeof(value_type)*rows);
+    par_spmv_kernel4<<<rows, 32>>>(dMat, d_vecX.get(), d_vecY.get());
     CUDA_CHK(cudaGetLastError());
     CUDA_CHK(cudaDeviceSynchronize());
-    validate_results("par_spmv_kernel4", d_expectedResult, d_out, N);
+    validate_results("par_spmv_kernel4", d_expectedResult.get(), d_vecY.get(), rows);
 
     mat.device_free(dMat);
 }
@@ -260,22 +253,16 @@ static void initial_kindergarten_test()
 void ejercicio1() {
     initial_kindergarten_test();
 
-    const unsigned int ROWS = 10000u;
-    const unsigned int COLUMNS = 9000u;
-
-    CSRMatrix<value_type> mat{ROWS, COLUMNS};
+    CSRMatrix<value_type> mat{MAT_ROWS, MAT_COLS};
     mat.random_init();
 
-    value_type h_in[COLUMNS];
-    value_type h_out[ROWS] = {0};
-    std::fill(std::begin(h_in), std::end(h_in), 1);
+    value_type h_vecX[MAT_COLS];
+    value_type h_vecY[MAT_ROWS] = {0};
+    std::fill(std::begin(h_vecX), std::end(h_vecX), 1);
 
-    value_type *d_in, *d_out, *d_expectedResult;
-
-    CUDA_CHK(cudaMalloc(&d_in, sizeof(value_type)*COLUMNS));
-    CUDA_CHK(cudaMalloc(&d_out, sizeof(value_type)*ROWS));
-
-    CUDA_CHK(cudaMemcpy(d_in, h_in, sizeof(value_type)*COLUMNS, cudaMemcpyHostToDevice));
+    auto d_vecX = dev_alloc_fill(MAT_COLS, h_vecX);
+    auto d_vecY = dev_alloc_zero<value_type>(MAT_ROWS);
+    auto d_expectedResult = dev_alloc<value_type>(MAT_ROWS);
 
     auto dMat = mat.to_device();
 
@@ -286,14 +273,14 @@ void ejercicio1() {
         std::cout << name << ": " << std::endl;
         Metric m;
         for (auto i = 0; i < times; ++i) {
-            CUDA_CHK(cudaMemset(d_out, 0, sizeof(value_type)*ROWS));
+            CUDA_CHK(cudaMemset(d_vecY.get(), 0, sizeof(value_type)*MAT_ROWS));
             auto t = m.track_begin();
             f();
             CUDA_CHK(cudaGetLastError());
             CUDA_CHK(cudaDeviceSynchronize());
             m.track_end(t);
             if (d_expectedResult) {
-                if (!validate_results(name.c_str(), d_expectedResult, d_out, ROWS, true, false)) {
+                if (!validate_results(name.c_str(), d_expectedResult, d_vecY.get(), MAT_ROWS, true, false)) {
                     break;
                 }
             }
@@ -301,48 +288,44 @@ void ejercicio1() {
         printf("> %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
     };
 
-    run_kernel("Serial (GPU)", [&]() {
-        ser_spmv_kernel_device<<<1, 1>>>(dMat, d_in, d_out);
+    run_kernel("ser_spmv_kernel_device", [&]() {
+        ser_spmv_kernel_device<<<1, 1>>>(dMat, d_vecX.get(), d_vecY.get());
     }, nullptr, 1);
 
-    // assume result of serial operatin as ground truth
-    CUDA_CHK(cudaMalloc(&d_expectedResult, sizeof(value_type)*ROWS));
-    CUDA_CHK(cudaMemcpy(d_expectedResult, d_out, sizeof(value_type)*ROWS, cudaMemcpyDeviceToDevice));
+    // assume result of serial operation as ground truth
+    CUDA_CHK(cudaMemcpy(d_expectedResult.get(), d_vecY.get(), sizeof(value_type)*MAT_ROWS, cudaMemcpyDeviceToDevice));
 
-    run_kernel("Serial (CPU)", [&]() {
-        ser_spmv_kernel_host(mat, h_in, h_out);
+    run_kernel("ser_spmv_kernel_host", [&]() {
+        ser_spmv_kernel_host(mat, h_vecX, h_vecY);
     }, nullptr, 1);
 
-    { // using h_out so it doesn't get optimized away
-        cudaMemcpy(d_out, h_out, 1, cudaMemcpyHostToDevice);
+    { // using h_vecY so it doesn't get optimized away
+        cudaMemcpy(d_vecY.get(), h_vecY, 1, cudaMemcpyHostToDevice);
     }
 
-    run_kernel("Par 1", [&]() {
-        dim3 dimGrid{ceilx((double)ROWS/BLOCK_SIZE)};
+    run_kernel("par_spmv_kernel1", [&]() {
+        dim3 dimGrid{ceilx((double)MAT_ROWS/BLOCK_SIZE)};
         dim3 dimBlock{BLOCK_SIZE};
-        par_spmv_kernel1<<<dimGrid, dimBlock>>>(dMat, d_in, d_out);
-    }, d_expectedResult);
+        par_spmv_kernel1<<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
+    }, d_expectedResult.get());
 
-    run_kernel("Par 2", [&]() {
-        dim3 dimGrid{ROWS};
+    run_kernel("par_spmv_kernel2", [&]() {
+        dim3 dimGrid{MAT_ROWS};
         dim3 dimBlock{BLOCK_SIZE}; // works better with fewer threads
-        par_spmv_kernel2<<<dimGrid, dimBlock>>>(dMat, d_in, d_out);
-    }, d_expectedResult);
+        par_spmv_kernel2<<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
+    }, d_expectedResult.get());
 
-    run_kernel("Par 3", [&]() {
-        dim3 dimGrid{ROWS};
+    run_kernel("par_spmv_kernel3", [&]() {
+        dim3 dimGrid{MAT_ROWS};
         dim3 dimBlock{BLOCK_SIZE};
-        par_spmv_kernel3<<<dimGrid, dimBlock>>>(dMat, d_in, d_out);
-    }, d_expectedResult);
+        par_spmv_kernel3<<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
+    }, d_expectedResult.get());
 
-    run_kernel("Par 4", [&]() {
-        dim3 dimGrid{ROWS/4};
+    run_kernel("par_spmv_kernel4", [&]() {
+        dim3 dimGrid{MAT_ROWS/4};
         dim3 dimBlock{BLOCK_SIZE};
-        par_spmv_kernel4<<<dimGrid, dimBlock>>>(dMat, d_in, d_out);
-    }, d_expectedResult);
+        par_spmv_kernel4<<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
+    }, d_expectedResult.get());
 
     mat.device_free(dMat);
-
-    CUDA_CHK(cudaFree(d_out));
-    CUDA_CHK(cudaFree(d_in));
 }

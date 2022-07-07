@@ -18,10 +18,12 @@
 #include <cstdint>
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include <cuda.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <cusparse.h>
 
 // should use cudaDeviceProp.warpSize but it is unlikely to change
 #define WARP_SIZE (32u)
@@ -48,49 +50,37 @@
     CUDA_CHK(cudaEventDestroy(measure_start_evt));                                                 \
     CUDA_CHK(cudaEventDestroy(measure_stop_evt))
 
-struct Metric {
-    size_t count_ = 0;
-    double total_ = 0;
-    double sumsq_ = 0;
-
-    timeval track_begin() {
-        timeval tv;
-        gettimeofday(&tv, NULL);
-        return tv;
-    }
-
-    void track_end(timeval tv_start) {
-        timeval tv_end;
-        gettimeofday(&tv_end, NULL);
-        double elap = ((double)tv_end.tv_sec * 1000.0 + (double)tv_end.tv_usec / 1000.0 -
-                       ((double)tv_start.tv_sec * 1000.0 + (double)tv_start.tv_usec / 1000.0));
-        add_sample(elap);
-    }
-
-    void add_sample(double sample) {
-        count_ += 1;
-        total_ += sample;
-        sumsq_ += sample * sample;
-    }
-
-    double total() const { return total_; }
-
-    double mean() const { return count_ ? total_ / count_ : 0; }
-
-    // basado en unidad 1 - sesion 2 del curso Metodos de Monte Carlo
-    // https://eva.fing.edu.uy/course/view.php?id=24
-    double stdev() const {
-        if (count_ > 1) {
-            return std::sqrt(sumsq_ / (count_ * (count_ - 1)) - (mean() * mean()) / (count_ - 1));
-        }
-        return 0;
-    }
-
-    double cv() const {
-        auto m = mean();
-        return m != 0 ? stdev() / m : 0;
+struct cuda_deleter {
+    void operator()(void* p) {
+        cudaFree(p);
     }
 };
+
+template<typename T>
+using cuda_unique_ptr = std::unique_ptr<T, cuda_deleter>;
+
+template <typename T = uint8_t>
+cuda_unique_ptr<T> dev_alloc(size_t size) {
+    T *dev_data;
+    CUDA_CHK(cudaMalloc(&dev_data, size * sizeof(T)));
+    return cuda_unique_ptr<T>(dev_data);
+}
+
+template <typename T>
+cuda_unique_ptr<T> dev_alloc_zero(size_t size) {
+    T *dev_data;
+    CUDA_CHK(cudaMalloc(&dev_data, size * sizeof(T)));
+    CUDA_CHK(cudaMemset(dev_data, 0, size * sizeof(T)));
+    return cuda_unique_ptr<T>(dev_data);
+}
+
+template <typename T>
+cuda_unique_ptr<T> dev_alloc_fill(size_t size, T *host_data) {
+    T *dev_data;
+    CUDA_CHK(cudaMalloc(&dev_data, size * sizeof(T)));
+    CUDA_CHK(cudaMemcpy(dev_data, host_data, size * sizeof(T), cudaMemcpyHostToDevice));
+    return cuda_unique_ptr<T>(dev_data);
+}
 
 /*!
  * Generate pseudo-random numbers between 0 and 1
@@ -190,12 +180,27 @@ template <typename T> inline std::string val2string(T val, const char *format, i
     return padding + str;
 }
 
+template <typename T>
+__host__ __device__ inline bool cmp_equal(T a, T b) {
+    return a == b;
+}
+
+template <>
+__host__ __device__ inline bool cmp_equal<float>(float a, float b) {
+    return abs(a - b) < 0.001;
+}
+
+template <>
+__host__ __device__ inline bool cmp_equal<double>(double a, double b) {
+    return abs(a - b) < 0.001;
+}
+
 /*!
  * Kernel that compares two arrays and sums the differences
  */
 template <typename T> __global__ void cmp_kernelT(T *data1, T *data2, uint32_t length, uint32_t *ndiff) {
     auto idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < length && data1[idx] != data2[idx]) {
+    if (idx < length && !cmp_equal(data1[idx], data2[idx])) {
         atomicAdd(ndiff, 1);
     }
 }
@@ -214,5 +219,21 @@ template <typename T> uint32_t gpu_compare_arrays(T *a, T *b, uint32_t size) {
     cudaFree(d_diff);
     return h_diff;
 }
+
+// https://stackoverflow.com/a/37569519/1351465
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
+__device__ inline double atomicAdd(double* address, double val)
+{
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
+}
+#endif
 
 #endif // UTILS_HPP__

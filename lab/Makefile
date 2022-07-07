@@ -13,8 +13,10 @@ OBJS_DIR   =$(OBJS_ROOT)
 OUTPUT_DIR  =$(BIN_DIR)
 OUTPUT_FILE =$(OUTPUT_DIR)/$(PROJECT)
 
+
 ifeq ($(shell test -e /usr/local/cuda/bin/nvcc && echo -n yes),yes)
 	NVCC=/usr/local/cuda/bin/nvcc
+	CUDALIBDIR=-L/usr/local/cuda/lib64
 	ifeq (,$(findstring /usr/local/cuda/lib64, $(LD_LIBRARY_PATH)))
 		LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):/usr/local/cuda/lib64
 	endif
@@ -27,7 +29,7 @@ $(info Using cuda compiler $(NVCC))
 INCLUDES =-I$(INCLUDE_DIR)
 NVCCFLAGS :=$(NVCCFLAGS) -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra
 NVLDFLAGS :=-g
-LIBRARIES :=-lcurand
+LIBRARIES :=$(CUDALIBDIR) -lcurand -lcusparse
 #-ccbin clang-8
 
 ifeq ($(dbg),1)

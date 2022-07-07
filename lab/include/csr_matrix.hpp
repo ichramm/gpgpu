@@ -60,7 +60,7 @@ public:
         return 0;
     }
 
-    void random_init(float non_zero_prob = 0.05,  value_type max = 100) {
+    void random_init(float non_zero_prob = 0.05, value_type max = 100) {
         // of course this is an approximation
         auto non_null = static_cast<size_t>(non_zero_prob*rows*columns);
         values.reserve(static_cast<size_t>(non_null));
@@ -73,7 +73,7 @@ public:
         for (uint32_t i = 0; i < rows; ++i) {
             for (uint32_t j = 0; j < columns; ++j) {
                 if (rand_unif() < non_zero_prob) {
-                    values.push_back(static_cast<value_type>(rand() % max));
+                    values.push_back(static_cast<value_type>(rand_unif() * max));
                     col_indices.push_back(j);
                     ++counter;
                 }

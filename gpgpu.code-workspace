@@ -1,22 +1,16 @@
 {
 	"folders": [
 		{
-			"path": "practico2"
-		},
-		{
-			"path": "practico3"
-		},
-		{
 			"path": "home_cluster"
 		},
 		{
 			"path": "../../../Drive/College/GPGPU"
 		},
 		{
-			"path": "practico1"
+			"path": "lab"
 		},
 		{
-			"path": "practico4"
+			"path": "MRE"
 		}
 	],
 	"settings": {
@@ -82,6 +76,7 @@
 			"list": "cpp",
 			"set": "cpp",
 			"mutex": "cpp"
-		}
+		},
+		"makefile.extensionOutputFolder": "./.vscode"
 	}
 }

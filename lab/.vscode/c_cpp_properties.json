@@ -1,7 +1,8 @@
 {
     "env": {
         "myDefaultIncludePath": [
-            "${workspaceFolder}"
+            "${workspaceFolder}/include",
+            "/usr/local/cuda/include"
         ],
         "myCompilerPath": "/usr/local/bin/gcc-7"
     },
@@ -10,7 +11,8 @@
             "name": "Mac",
             "intelliSenseMode": "clang-x64",
             "includePath": [
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include",
+                "/usr/local/cuda/include"
             ],
             "macFrameworkPath": [],
             "defines": [
