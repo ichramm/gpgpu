@@ -12,7 +12,7 @@
 template<typename T, size_t Block_Width>
 class BLMatrix {
 public:
-    const size_t block_width = Block_Width;
+    static const size_t block_width = Block_Width;
 
     const uint32_t rows;
     const uint32_t columns;
@@ -38,6 +38,15 @@ public:
     // length: number block-rows + 1
     std::vector<uint32_t> bl_row_pointers;
 
+    struct DeviceStruct {
+        uint32_t rows;
+        uint32_t columns;
+        T *values;
+        uint32_t *bl_starts;
+        uint64_t *bl_bitmaps;
+        uint32_t *bl_col_indices;
+        uint32_t *bl_row_pointers;
+    };
 
     BLMatrix(uint32_t r, uint32_t c)
      : rows(r)
@@ -133,6 +142,59 @@ public:
                 }
             }
         }
+    }
+
+    DeviceStruct to_device() {
+        DeviceStruct dMat;
+        dMat.rows = rows;
+        dMat.columns = columns;
+#if 0
+        size_t vsize = size_in_bytes(values);
+        size_t ssize = size_in_bytes(bl_starts);
+        size_t bsize = size_in_bytes(bl_bitmaps);
+        size_t csize = size_in_bytes(bl_col_indices);
+        size_t rsize = size_in_bytes(bl_row_pointers);
+
+        cudaMalloc(&dMat.values, vsize+ssize+bsize+csize+rsize);
+        cudaMemcpy(dMat.values, values.data(), vsize, cudaMemcpyHostToDevice);
+        dMat.bl_starts = reinterpret_cast<uint32_t *>(dMat.values + vsize);
+        cudaMemcpy(dMat.bl_starts, bl_starts.data(), ssize, cudaMemcpyHostToDevice);
+        dMat.bl_bitmaps = reinterpret_cast<uint64_t *>(dMat.bl_starts + ssize);
+        cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), bsize, cudaMemcpyHostToDevice);
+        dMat.bl_col_indices = reinterpret_cast<uint32_t *>(dMat.bl_bitmaps + bsize);
+        cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), csize, cudaMemcpyHostToDevice);
+        dMat.bl_row_pointers = reinterpret_cast<uint32_t *>(dMat.bl_col_indices + csize);
+        cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), rsize, cudaMemcpyHostToDevice);
+
+        return dMat;
+#else
+        cudaMalloc(&dMat.values, size_in_bytes(values));
+        cudaMemcpy(dMat.values, values.data(), size_in_bytes(values), cudaMemcpyHostToDevice);
+
+        cudaMalloc(&dMat.bl_starts, size_in_bytes(bl_starts));
+        cudaMemcpy(dMat.bl_starts, bl_starts.data(), size_in_bytes(bl_starts), cudaMemcpyHostToDevice);
+
+        cudaMalloc(&dMat.bl_bitmaps, size_in_bytes(bl_bitmaps));
+        cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), size_in_bytes(bl_bitmaps), cudaMemcpyHostToDevice);
+
+        cudaMalloc(&dMat.bl_col_indices, size_in_bytes(bl_col_indices));
+        cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), size_in_bytes(bl_col_indices), cudaMemcpyHostToDevice);
+
+        cudaMalloc(&dMat.bl_row_pointers, size_in_bytes(bl_row_pointers));
+        cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), size_in_bytes(bl_row_pointers), cudaMemcpyHostToDevice);
+
+        return dMat;
+#endif
+    }
+
+    void device_free(DeviceStruct dMat) {
+        cudaFree(dMat.values);
+#if 0
+        cudaFree(dMat.bl_starts);
+        cudaFree(dMat.bl_bitmaps);
+        cudaFree(dMat.bl_col_indices);
+        cudaFree(dMat.bl_row_pointers);
+#endif
     }
 };
 

@@ -50,6 +50,11 @@
     CUDA_CHK(cudaEventDestroy(measure_start_evt));                                                 \
     CUDA_CHK(cudaEventDestroy(measure_stop_evt))
 
+template <typename Container>
+size_t size_in_bytes(const Container& c) {
+    return sizeof(typename Container::value_type) * c.size();
+}
+
 struct cuda_deleter {
     void operator()(void* p) {
         cudaFree(p);
@@ -212,12 +217,41 @@ template <typename T> __global__ void cmp_kernelT(T *data1, T *data2, uint32_t l
 template <typename T> uint32_t gpu_compare_arrays(T *a, T *b, uint32_t size) {
     uint32_t h_diff;
     uint32_t *d_diff;
-    cudaMalloc(&d_diff, sizeof(uint32_t));
-    cudaMemset(d_diff, 0, sizeof(uint32_t));
+    CUDA_CHK(cudaMalloc(&d_diff, sizeof(uint32_t)));
+    CUDA_CHK(cudaMemset(d_diff, 0, sizeof(uint32_t)));
     cmp_kernelT<T><<<std::ceil((double)size / 1024), 1024>>>(a, b, size, d_diff);
-    cudaMemcpy(&h_diff, d_diff, sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    cudaFree(d_diff);
+    CUDA_CHK(cudaGetLastError());
+    CUDA_CHK(cudaMemcpy(&h_diff, d_diff, sizeof(uint32_t), cudaMemcpyDeviceToHost));
+    CUDA_CHK(cudaFree(d_diff));
     return h_diff;
+}
+
+template <typename value_type>
+bool validate_results(const char *name,
+                      value_type *d_expected,
+                      value_type *d_out,
+                      uint32_t N,
+                      bool silent = false,
+                      bool print_vect = true)
+{
+    if (auto ndiff = gpu_compare_arrays(d_expected, d_out, N)) {
+        value_type *h_vecY = new value_type[N];
+        cudaMemcpy(h_vecY, d_out, sizeof(h_vecY), cudaMemcpyDeviceToHost);
+        std::cout << name << ": " << ndiff << " differences found" << std::endl;
+        if (print_vect) {
+            for (uint32_t i = 0; i < N; ++i) {
+                std::cout << " " << h_vecY[i];
+            }
+            std::cout << std::endl;
+        }
+        delete[] h_vecY;
+        return false;
+    } else {
+        if (!silent) {
+            std::cout << name << ": OK" << std::endl;
+        }
+        return true;
+    }
 }
 
 // https://stackoverflow.com/a/37569519/1351465

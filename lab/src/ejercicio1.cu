@@ -168,34 +168,6 @@ __global__ void par_spmv_kernel4(CSRMatrix<value_type>::DeviceStruct mat,
     }
 }
 
-bool validate_results(const char *name,
-                      value_type *d_expectedResult,
-                      value_type *d_out,
-                      uint32_t N,
-                      bool silent = false,
-                      bool print_vect = true)
-{
-    if (auto ndiff = gpu_compare_arrays(d_expectedResult, d_out, N)) {
-        value_type *h_vecY = new value_type[N];
-        cudaMemcpy(h_vecY, d_out, sizeof(h_vecY), cudaMemcpyDeviceToHost);
-        std::cout << name << ": " << ndiff << " differences found" << std::endl;
-        if (print_vect) {
-            for (uint32_t i = 0; i < N; ++i) {
-                std::cout << " " << h_vecY[i];
-            }
-            std::cout << std::endl;
-        }
-        delete[] h_vecY;
-        return false;
-    } else {
-        if (!silent) {
-            std::cout << name << ": OK" << std::endl;
-        }
-        return true;
-    }
-}
-
-
 static void initial_kindergarten_test()
 {
     constexpr uint32_t rows = 6;

@@ -8,7 +8,7 @@
 #include "utils.hpp"
 #include "metric.hpp"
 
-typedef double value_type;
+typedef float value_type;
 
 #ifndef BLOCK_SIZE
 #define BLOCK_SIZE (256u)
