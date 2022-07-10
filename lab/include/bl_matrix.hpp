@@ -7,12 +7,13 @@
 
 #include <vector>
 #include <iomanip>
+#include <cstdint>
 #include <cuda_device_runtime_api.h>
 
 template<typename T, size_t Block_Width>
 class BLMatrix {
 public:
-    static const size_t block_width = Block_Width;
+    static const uint32_t block_width = Block_Width;
 
     const uint32_t rows;
     const uint32_t columns;
@@ -106,7 +107,7 @@ public:
         return 0;
     }
 
-    void random_init(float non_zero_prob = 0.05, value_type max = 100) {
+    void random_init(float non_zero_prob = 0.01, value_type max = 100) {
         // of course this is an approximation
         auto non_null = static_cast<size_t>(non_zero_prob*rows*columns);
         values.reserve(non_null);
@@ -127,7 +128,7 @@ public:
                 for (uint32_t i = 0; i < block_width; ++i) {
                     for (uint32_t j = 0; j < block_width; ++j) {
                         if (rand_unif() < non_zero_prob) {
-                            values.push_back(rand_unif() * max);
+                            values.push_back((value_type)(int)(rand_unif() * max));
                             bitmap |= (1ULL << (i*block_width + j));
                         }
                     }
@@ -155,33 +156,33 @@ public:
         size_t csize = size_in_bytes(bl_col_indices);
         size_t rsize = size_in_bytes(bl_row_pointers);
 
-        cudaMalloc(&dMat.values, vsize+ssize+bsize+csize+rsize);
-        cudaMemcpy(dMat.values, values.data(), vsize, cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.values, vsize+ssize+bsize+csize+rsize));
+        CUDA_CHK(cudaMemcpy(dMat.values, values.data(), vsize, cudaMemcpyHostToDevice));
         dMat.bl_starts = reinterpret_cast<uint32_t *>(dMat.values + vsize);
-        cudaMemcpy(dMat.bl_starts, bl_starts.data(), ssize, cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMemcpy(dMat.bl_starts, bl_starts.data(), ssize, cudaMemcpyHostToDevice));
         dMat.bl_bitmaps = reinterpret_cast<uint64_t *>(dMat.bl_starts + ssize);
-        cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), bsize, cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), bsize, cudaMemcpyHostToDevice));
         dMat.bl_col_indices = reinterpret_cast<uint32_t *>(dMat.bl_bitmaps + bsize);
-        cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), csize, cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), csize, cudaMemcpyHostToDevice));
         dMat.bl_row_pointers = reinterpret_cast<uint32_t *>(dMat.bl_col_indices + csize);
-        cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), rsize, cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), rsize, cudaMemcpyHostToDevice));
 
         return dMat;
 #else
-        cudaMalloc(&dMat.values, size_in_bytes(values));
-        cudaMemcpy(dMat.values, values.data(), size_in_bytes(values), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.values, size_in_bytes(values)));
+        CUDA_CHK(cudaMemcpy(dMat.values, values.data(), size_in_bytes(values), cudaMemcpyHostToDevice));
 
-        cudaMalloc(&dMat.bl_starts, size_in_bytes(bl_starts));
-        cudaMemcpy(dMat.bl_starts, bl_starts.data(), size_in_bytes(bl_starts), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.bl_starts, size_in_bytes(bl_starts)));
+        CUDA_CHK(cudaMemcpy(dMat.bl_starts, bl_starts.data(), size_in_bytes(bl_starts), cudaMemcpyHostToDevice));
 
-        cudaMalloc(&dMat.bl_bitmaps, size_in_bytes(bl_bitmaps));
-        cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), size_in_bytes(bl_bitmaps), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.bl_bitmaps, size_in_bytes(bl_bitmaps)));
+        CUDA_CHK(cudaMemcpy(dMat.bl_bitmaps, bl_bitmaps.data(), size_in_bytes(bl_bitmaps), cudaMemcpyHostToDevice));
 
-        cudaMalloc(&dMat.bl_col_indices, size_in_bytes(bl_col_indices));
-        cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), size_in_bytes(bl_col_indices), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.bl_col_indices, size_in_bytes(bl_col_indices)));
+        CUDA_CHK(cudaMemcpy(dMat.bl_col_indices, bl_col_indices.data(), size_in_bytes(bl_col_indices), cudaMemcpyHostToDevice));
 
-        cudaMalloc(&dMat.bl_row_pointers, size_in_bytes(bl_row_pointers));
-        cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), size_in_bytes(bl_row_pointers), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMalloc(&dMat.bl_row_pointers, size_in_bytes(bl_row_pointers)));
+        CUDA_CHK(cudaMemcpy(dMat.bl_row_pointers, bl_row_pointers.data(), size_in_bytes(bl_row_pointers), cudaMemcpyHostToDevice));
 
         return dMat;
 #endif
@@ -199,15 +200,17 @@ public:
 };
 
 // ostream operator for BLMatrix
-template<typename T, size_t BL_SIZE>
-std::ostream& operator<<(std::ostream& os, const BLMatrix<T, BL_SIZE>& m) {
+template<typename T, size_t Block_Width>
+std::ostream& operator<<(std::ostream& os, const BLMatrix<T, Block_Width>& m) {
     auto w = os.width();
     for (uint32_t i = 0; i < m.rows; ++i) {
         for (uint32_t j = 0; j < m.columns; ++j) {
             os << std::setw(3) << m.get(i, j) << " ";
             m.get(i, j);
         }
-        os << std::endl;
+        if (i < m.rows-1) {
+            os << std::endl;
+        }
     }
     os.width(w);
     return os;

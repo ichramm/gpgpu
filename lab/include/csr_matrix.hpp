@@ -60,7 +60,7 @@ public:
         return 0;
     }
 
-    void random_init(float non_zero_prob = 0.05, value_type max = 100) {
+    void random_init(float non_zero_prob = 0.01, value_type max = 100) {
         // of course this is an approximation
         auto non_null = static_cast<size_t>(non_zero_prob*rows*columns);
         values.reserve(static_cast<size_t>(non_null));
@@ -85,20 +85,26 @@ public:
     DeviceStruct to_device() {
         DeviceStruct dMat;
         dMat.rows = rows;
-        cudaMalloc(&dMat.values, values.size()*sizeof(value_type));
-        cudaMalloc(&dMat.col_indices, col_indices.size()*sizeof(uint32_t));
-        cudaMalloc(&dMat.row_pointers, row_pointers.size()*sizeof(uint32_t));
+#if 0
+        dMat.values = dev_alloc_fill(values.size(), values.data()).release();
+        dMat.col_indices = dev_alloc_fill(col_indices.size(), col_indices.data()).release();
+        dMat.row_pointers = dev_alloc_fill(row_pointers.size(), row_pointers.data()).release();
+#else
+        CUDA_CHK(cudaMalloc(&dMat.values, size_in_bytes(values)));
+        CUDA_CHK(cudaMalloc(&dMat.col_indices, size_in_bytes(col_indices)));
+        CUDA_CHK(cudaMalloc(&dMat.row_pointers, size_in_bytes(row_pointers)));
 
-        cudaMemcpy(dMat.values, values.data(), values.size()*sizeof(value_type), cudaMemcpyHostToDevice);
-        cudaMemcpy(dMat.col_indices, col_indices.data(), col_indices.size()*sizeof(uint32_t), cudaMemcpyHostToDevice);
-        cudaMemcpy(dMat.row_pointers, row_pointers.data(), row_pointers.size()*sizeof(uint32_t), cudaMemcpyHostToDevice);
+        CUDA_CHK(cudaMemcpy(dMat.values, values.data(), size_in_bytes(values), cudaMemcpyHostToDevice));
+        CUDA_CHK(cudaMemcpy(dMat.col_indices, col_indices.data(), size_in_bytes(col_indices), cudaMemcpyHostToDevice));
+        CUDA_CHK(cudaMemcpy(dMat.row_pointers, row_pointers.data(), size_in_bytes(row_pointers), cudaMemcpyHostToDevice));
+#endif
         return dMat;
     }
 
     void device_free(DeviceStruct dMat) {
-        cudaFree(dMat.values);
-        cudaFree(dMat.col_indices);
-        cudaFree(dMat.row_pointers);
+        CUDA_CHK(cudaFree(dMat.values));
+        CUDA_CHK(cudaFree(dMat.col_indices));
+        CUDA_CHK(cudaFree(dMat.row_pointers));
     }
 };
 
@@ -110,7 +116,9 @@ std::ostream& operator<<(std::ostream& os, const CSRMatrix<T>& m) {
             os << std::setw(3) << m.get(i, j) << " ";
             m.get(i, j);
         }
-        os << std::endl;
+        if (i < m.rows-1) {
+            os << std::endl;
+        }
     }
     os.width(w);
     return os;

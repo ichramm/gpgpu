@@ -19,11 +19,11 @@ typedef float value_type;
 #endif
 
 #ifndef MAT_ROWS
-#define MAT_ROWS (10000u)
+#define MAT_ROWS (15000u)
 #endif
 
 #ifndef MAT_COLS
-#define MAT_COLS (10000u)
+#define MAT_COLS (20000u)
 #endif
 
 template <typename T>
@@ -39,6 +39,28 @@ template<> struct cuda_data_type<float> {
 template<> struct cuda_data_type<double> {
     static constexpr cudaDataType type = CUDA_R_64F;
 };
+
+template<typename Callback>
+int lab_tests_controller(Callback c) {
+    float non_null_probs[] = { 0.01, 0.05 };
+    size_t rows[] = { 10000u, 20000u };
+
+    for (auto row : rows) {
+        for (auto non_null_prob : non_null_probs) {
+            std::cout << "=================================" << std::endl;
+            std::cout << "Starting test with " << row << " rows and non-null probability " << non_null_prob << std::endl;
+            c(non_null_prob, row, row);
+
+            // FIXME: remove when done
+            break;
+        }
+
+        // FIXME: remove when done
+        //break;
+    }
+
+    return 0;
+}
 
 void ejercicio1();
 

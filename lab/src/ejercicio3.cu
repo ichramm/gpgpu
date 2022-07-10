@@ -20,6 +20,10 @@
 #define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
 #define CUSPARSE_CALL(X) ERR_NE((X), CUSPARSE_STATUS_SUCCESS)
 
+#if CUSPARSE_VER_MAJOR < 11
+#define CUSPARSE_SPMV_CSR_ALG1 CUSPARSE_CSRMV_ALG1
+#endif
+
 static void do_csr_spmv(size_t rows,
                         size_t columns,
                         const int *d_rowPtr,
@@ -27,7 +31,8 @@ static void do_csr_spmv(size_t rows,
                         const value_type *d_vals,
                         size_t nvals,
                         const value_type *d_vecX,
-                        value_type *d_vecY)
+                        value_type *d_vecY,
+                        Metric *m = nullptr)
 {
     static constexpr auto alpha = 1.0F;
     static constexpr auto beta = 0.0F;
@@ -74,6 +79,11 @@ static void do_csr_spmv(size_t rows,
 
     auto d_externalBuffer = dev_alloc<>(bufferSize);
 
+
+    timeval t;
+    if (m) {
+        t = m->track_begin();
+    }
     CUSPARSE_CALL(cusparseSpMV(handle,
                                CUSPARSE_OPERATION_NON_TRANSPOSE,
                                &alpha,
@@ -84,8 +94,10 @@ static void do_csr_spmv(size_t rows,
                                cuda_data_type<value_type>::type,
                                CUSPARSE_SPMV_CSR_ALG1,
                                d_externalBuffer.get()));
-
     CUDA_CHK(cudaDeviceSynchronize());
+    if (m) {
+        m->track_end(t);
+    }
 
     cusparseDestroyDnVec(vecDescrY);
     cusparseDestroyDnVec(vecDescrX);
@@ -137,30 +149,32 @@ void ejercicio3()
 {
     initial_kindergarten_test();
 
-    CSRMatrix<value_type> mat{MAT_ROWS, MAT_COLS};
-    mat.random_init();
+    lab_tests_controller([&](float p, uint32_t rows, uint32_t columns) {
+        CSRMatrix<value_type> mat{rows, columns};
+        mat.random_init(p);
 
-    value_type h_vecX[MAT_COLS];
-    std::fill(std::begin(h_vecX), std::end(h_vecX), 1);
+        std::vector<value_type> h_vecX(columns, static_cast<value_type>(1));
 
-    auto d_rowPtr = dev_alloc_fill(mat.row_pointers.size(), mat.row_pointers.data());
-    auto d_colIdx = dev_alloc_fill(mat.col_indices.size(), mat.col_indices.data());
-    auto d_vals = dev_alloc_fill(mat.values.size(), mat.values.data());
-    auto d_vecX = dev_alloc_fill(MAT_COLS, h_vecX);
-    auto d_vecY = dev_alloc_zero<value_type>(MAT_ROWS);
+        auto d_rowPtr = dev_alloc_fill(mat.row_pointers.size(), mat.row_pointers.data());
+        auto d_colIdx = dev_alloc_fill(mat.col_indices.size(), mat.col_indices.data());
+        auto d_vals = dev_alloc_fill(mat.values.size(), mat.values.data());
+        auto d_vecX = dev_alloc_fill(h_vecX.size(), h_vecX.data());
+        auto d_vecY = dev_alloc_zero<value_type>(rows);
 
-    Metric m;
-    for (auto i = 0; i < BENCH_TIMES; ++i) {
-        auto t = m.track_begin();
-        do_csr_spmv(MAT_ROWS,
-                    MAT_COLS,
-                    (int*)d_rowPtr.get(),
-                    (int*)d_colIdx.get(),
-                    d_vals.get(),
-                    mat.values.size(),
-                    d_vecX.get(),
-                    d_vecY.get());
-        m.track_end(t);
-    }
-    printf("> %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
+        Metric m;
+        for (auto i = 0; i < BENCH_TIMES; ++i) {
+            //auto t = m.track_begin();
+            do_csr_spmv(rows,
+                        columns,
+                        (int*)d_rowPtr.get(),
+                        (int*)d_colIdx.get(),
+                        d_vals.get(),
+                        mat.values.size(),
+                        d_vecX.get(),
+                        d_vecY.get(),
+                        &m);
+            //m.track_end(t);
+        }
+        printf("> %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
+    });
 }

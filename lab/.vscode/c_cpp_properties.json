@@ -2,7 +2,7 @@
     "env": {
         "myDefaultIncludePath": [
             "${workspaceFolder}/include",
-            "/usr/local/cuda/include"
+            //"/usr/local/cuda/include"
         ],
         "myCompilerPath": "/usr/local/bin/gcc-7"
     },
@@ -12,7 +12,7 @@
             "intelliSenseMode": "clang-x64",
             "includePath": [
                 "${workspaceFolder}/include",
-                "/usr/local/cuda/include"
+                //"/usr/local/cuda/include"
             ],
             "macFrameworkPath": [],
             "defines": [
@@ -22,7 +22,8 @@
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++11",
-            "compileCommands": "/usr/local/cuda/bin/nvcc",
+            //"compileCommands": "/usr/local/cuda/bin/nvcc",
+            "compileCommands": "nvcc",
             "browse": {
                 "path": [
                     "${workspaceFolder}"

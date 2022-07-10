@@ -87,25 +87,27 @@ cuda_unique_ptr<T> dev_alloc_fill(size_t size, T *host_data) {
     return cuda_unique_ptr<T>(dev_data);
 }
 
+// https://stackoverflow.com/a/37569519/1351465
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
+__device__ inline double atomicAdd(double* address, double val)
+{
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
+}
+#endif
+
 /*!
  * Generate pseudo-random numbers between 0 and 1
  */
 inline double rand_unif() {
     return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
-}
-
-/*!
- * Converts `val` to uint64 and then performs a left shift of amount `n`.
- */
-template <typename T> constexpr uint64_t lshift64(T val, int n) {
-    return static_cast<uint64_t>(val) << n;
-}
-
-/*!
- * Converts `val` to uint64 and then performs a right shift of amount `n`.
- */
-template <typename T> constexpr uint64_t rshift64(T val, int n) {
-    return static_cast<uint64_t>(val) >> n;
 }
 
 /*!
@@ -190,14 +192,16 @@ __host__ __device__ inline bool cmp_equal(T a, T b) {
     return a == b;
 }
 
+// to cope with floating-point errors
 template <>
 __host__ __device__ inline bool cmp_equal<float>(float a, float b) {
-    return abs(a - b) < 0.001;
+    return abs(a - b) < 0.1;
 }
 
+// to cope with floating-point errors
 template <>
 __host__ __device__ inline bool cmp_equal<double>(double a, double b) {
-    return abs(a - b) < 0.001;
+    return abs(a - b) < 0.1;
 }
 
 /*!
@@ -206,6 +210,7 @@ __host__ __device__ inline bool cmp_equal<double>(double a, double b) {
 template <typename T> __global__ void cmp_kernelT(T *data1, T *data2, uint32_t length, uint32_t *ndiff) {
     auto idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < length && !cmp_equal(data1[idx], data2[idx])) {
+        //printf("idx=%d, data1=%f, data2=%f\n", idx, data1[idx], data2[idx]);
         atomicAdd(ndiff, 1);
     }
 }
@@ -226,6 +231,17 @@ template <typename T> uint32_t gpu_compare_arrays(T *a, T *b, uint32_t size) {
     return h_diff;
 }
 
+template <typename T>
+void print_vector(const char *name, const T *vect, size_t size) {
+    std::cout << name << ": (";
+    for (uint32_t i = 0; i < size; ++i) {
+        std::cout << vect[i];
+        if (i < size-1)
+            std::cout << ", ";
+    }
+    std::cout << ")" << std::endl;
+}
+
 template <typename value_type>
 bool validate_results(const char *name,
                       value_type *d_expected,
@@ -239,10 +255,7 @@ bool validate_results(const char *name,
         cudaMemcpy(h_vecY, d_out, sizeof(h_vecY), cudaMemcpyDeviceToHost);
         std::cout << name << ": " << ndiff << " differences found" << std::endl;
         if (print_vect) {
-            for (uint32_t i = 0; i < N; ++i) {
-                std::cout << " " << h_vecY[i];
-            }
-            std::cout << std::endl;
+            print_vector("Result", h_vecY, N);
         }
         delete[] h_vecY;
         return false;
@@ -253,21 +266,5 @@ bool validate_results(const char *name,
         return true;
     }
 }
-
-// https://stackoverflow.com/a/37569519/1351465
-#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
-#else
-__device__ inline double atomicAdd(double* address, double val)
-{
-    unsigned long long int* address_as_ull = (unsigned long long int*)address;
-    unsigned long long int old = *address_as_ull, assumed;
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_ull, assumed,
-                __double_as_longlong(val + __longlong_as_double(assumed)));
-    } while (assumed != old);
-    return __longlong_as_double(old);
-}
-#endif
 
 #endif // UTILS_HPP__

@@ -23,7 +23,7 @@
         {
             "label": "rebuild",
             "type": "shell",
-            "command": "make clean && make dbg=1",
+            "command": "make clean && make dbg=0",
             "group": {
                 "kind": "build",
                 "isDefault": false
