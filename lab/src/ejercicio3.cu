@@ -17,7 +17,6 @@
     } \
 } while(0)
 
-#define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
 #define CUSPARSE_CALL(X) ERR_NE((X), CUSPARSE_STATUS_SUCCESS)
 
 #if CUSPARSE_VER_MAJOR < 11
@@ -84,6 +83,7 @@ static void do_csr_spmv(size_t rows,
     if (m) {
         t = m->track_begin();
     }
+
     CUSPARSE_CALL(cusparseSpMV(handle,
                                CUSPARSE_OPERATION_NON_TRANSPOSE,
                                &alpha,
@@ -95,6 +95,7 @@ static void do_csr_spmv(size_t rows,
                                CUSPARSE_SPMV_CSR_ALG1,
                                d_externalBuffer.get()));
     CUDA_CHK(cudaDeviceSynchronize());
+
     if (m) {
         m->track_end(t);
     }

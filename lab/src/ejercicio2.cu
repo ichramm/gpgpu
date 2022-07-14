@@ -54,20 +54,13 @@ __host__ void serial_bl_spmv_kernel_host(const BLMatrix<value_type, Block_Width>
     }
 }
 
-
-// one block per block??
-// 2D grid of size (n/Block_Width) x (m/Block_Width)
-// problem: number of blocks does not match grid dimensions
-// need to consider null blocks
-// idea: use nested kernels -> cannot uses shared memory
-// but: I kwnow how may blocks there are
-// idea: use 8x8 blocks
-    // idea: un bloque por fila de bloques
-    // usar distintos grupos de threads para cada bloque
-    // ver si no hay quilombo al sincronizar
-    // buscar la forma de hacer parallel reduce
-
-
+/**
+ * One or more blocks per block-row
+ * Each block of size Block_Width x Block_Width
+ * Store partial sums in shared memory, one element per row (array of size Block_Width)
+ * Use atomicAdd to increment partial sums accross the entire row
+ * Thread with x-index = 0 uses atomicAdd in global memory to increment the final result
+ */
 template <typename value_type, size_t Block_Width>
 __global__ void par_bl_spmv_kernel1(typename BLMatrix<value_type, Block_Width>::DeviceStruct mat,
                                  const value_type * __restrict__ vecX,
@@ -116,9 +109,76 @@ __global__ void par_bl_spmv_kernel1(typename BLMatrix<value_type, Block_Width>::
     }
 }
 
-// only works with 8x8 blocks
+/**
+ * One or more blocks per block-row
+ * Each block of size Block_Width x Block_Width
+ * Store partial sums in shared memory, one element per thread (array of size Block_Width x Block_Width)
+ * Each threads computas a partial sum accross the entire row
+ * Sums are reduced from high-lane threads to lower lane threads in shared memory
+ * Thread with x-index = 0 uses atomicAdd in global memory to increment the final result
+ */
 template <typename value_type, size_t Block_Width>
 __global__ void par_bl_spmv_kernel2(typename BLMatrix<value_type, Block_Width>::DeviceStruct mat,
+                                 const value_type * __restrict__ vecX,
+                                 value_type *vecY)
+{
+    // one value per row
+    __shared__ value_type partial_sum[Block_Width*Block_Width];
+
+    // 2d grid
+    auto block_row = blockIdx.y;
+    auto block_offset = blockIdx.x;
+
+    // coordinates inside the block
+    auto y = threadIdx.y;
+    auto x = threadIdx.x;
+    auto idx = y * Block_Width + x;
+
+    partial_sum[y * Block_Width + x] = 0;
+    __syncthreads();
+
+    for (auto j = mat.bl_row_pointers[block_row] + block_offset,
+              end = mat.bl_row_pointers[block_row + 1]; j < end; j += gridDim.x) {
+        auto block_col = mat.bl_col_indices[j] * Block_Width;
+
+        auto bitmap = mat.bl_bitmaps[j];
+        auto start = mat.bl_starts[j];
+        auto bit = 1ULL << ((Block_Width*Block_Width) - idx - 1);
+
+        // no need to recreate the entire block
+        if (bitmap & bit) {
+            auto offset = __popcll(bitmap - (bitmap&(bit+bit-1)));
+            auto value = mat.values[start + offset];
+            auto mult = vecX[block_col + x];
+
+            partial_sum[idx] += value * mult;
+        }
+    }
+
+    // copy from threads having x=1..7 to thread x=0
+    for (auto offset = Block_Width/2; offset > 0; offset /= 2) {
+        __syncthreads();
+        if (threadIdx.x < offset) {
+            partial_sum[idx] += partial_sum[idx + offset];
+        }
+    }
+
+    if (threadIdx.x == 0) {
+        atomicAdd(&vecY[block_row * Block_Width + y], partial_sum[idx]);
+    }
+}
+
+
+/**
+ * One or more blocks per block-row
+ * Each block of size Block_Width x Block_Width
+ * Store partial sums in shared memory, one element per thread (array of size Block_Width x Block_Width)
+ * Each threads computas a partial sum accross the entire row
+ * Sums are reduced from high-lane threads to lower lane threads using warp-reduce
+ * Thread with x-index = 0 uses atomicAdd in global memory to increment the final result
+ */
+template <typename value_type, size_t Block_Width>
+__global__ void par_bl_spmv_kernel3(typename BLMatrix<value_type, Block_Width>::DeviceStruct mat,
                                  const value_type * __restrict__ vecX,
                                  value_type *vecY)
 {
@@ -136,45 +196,34 @@ __global__ void par_bl_spmv_kernel2(typename BLMatrix<value_type, Block_Width>::
               end = mat.bl_row_pointers[block_row + 1]; j < end; j += gridDim.x) {
         auto block_col = mat.bl_col_indices[j] * Block_Width;
 
+        // no need to recreate the entire block
         auto bitmap = mat.bl_bitmaps[j];
         auto start = mat.bl_starts[j];
         auto bit = 1ULL << ((Block_Width*Block_Width) - (y * Block_Width + x) - 1);
 
-        auto acc = 0;
-
-        // no need to recreate the entire block
         if (bitmap & bit) {
             auto offset = __popcll(bitmap - (bitmap&(bit+bit-1)));
             auto value = mat.values[start + offset];
             auto mult = vecX[block_col + x];
-            acc = value * mult;
+            total = value * mult;
         }
+    }
 
-        // copy values from other threads in the warp
-        for (auto offset = Block_Width/2; offset > 0; offset /= 2) {
-            //if (threadIdx.x < offset) {
+    __syncthreads();
+
+    // copy from threads having x=1..7 to thread x=0
+    for (auto offset = Block_Width/2; offset > 0; offset /= 2) {
 #if __CUDA_ARCH__ >= 300
-            acc += __shfl_down_sync(0xFFFFFFFF, acc, offset, Block_Width);
+        total += __shfl_down_sync(0xFFFFFFFF, total, offset, Block_Width);
 #else
-            acc += __shfl_down(acc, offset, Block_Width);
+        total += __shfl_down(total, offset, Block_Width);
 #endif
-            //}
-        }
-
-        total += acc;
     }
 
     if (threadIdx.x == 0) {
-        //atomicAdd(&vecY[block_row * Block_Width + y], partial_sum[y]);
         atomicAdd(&vecY[block_row * Block_Width + y], total);
     }
 }
-
-/////////////////////////////////
-         ///  IDEA  ///
-/////////////////////////////////
-// Que bloque denso sea un CSR //
-/////////////////////////////////
 
 static void initial_kindergarten_test() {
     using Matrix = BLMatrix2<value_type>;
@@ -296,6 +345,15 @@ void ejercicio2() {
                 dim3 dimGrid{1, rows/Matrix::block_width};
                 dim3 dimBlock{Matrix::block_width, Matrix::block_width};
                 par_bl_spmv_kernel2<value_type, Matrix::block_width><<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
+            }, d_expectedResult.get());
+        }
+
+        for (auto bp : blocks_per_row) {
+            std::string name = std::string{"par_bl_spmv_kernel3"} + " (" + std::to_string(bp) + " blocks per block-row)";
+            run_kernel(name, [&]() {
+                dim3 dimGrid{1, rows/Matrix::block_width};
+                dim3 dimBlock{Matrix::block_width, Matrix::block_width};
+                par_bl_spmv_kernel3<value_type, Matrix::block_width><<<dimGrid, dimBlock>>>(dMat, d_vecX.get(), d_vecY.get());
             }, d_expectedResult.get());
         }
     });

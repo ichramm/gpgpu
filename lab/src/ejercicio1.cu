@@ -112,7 +112,8 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
 
     if (row < mat.rows) {
         value_type acc = 0;
-        for (auto j = mat.row_pointers[row]+threadIdx.x, end = mat.row_pointers[row+1]; j < end; j += blockDim.x) {
+        for (auto j = mat.row_pointers[row]+threadIdx.x,
+                  end = mat.row_pointers[row+1]; j < end; j += blockDim.x) {
             acc += mat.values[j] * x[mat.col_indices[j]];
         }
         partials[threadIdx.x] = acc;
@@ -120,7 +121,7 @@ __global__ void par_spmv_kernel3(CSRMatrix<value_type>::DeviceStruct mat,
 
     __syncthreads();
 
-    for (auto offset = BLOCK_SIZE /  2; offset > 0; offset  /= 2) {
+    for (auto offset = BLOCK_SIZE /  2; offset > 0; offset /= 2) {
         if (threadIdx.x < offset) {
             partials[threadIdx.x] += partials[threadIdx.x + offset];
         }

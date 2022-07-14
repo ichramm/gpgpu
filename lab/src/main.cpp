@@ -20,7 +20,6 @@ int main(int argc, char *argv[]) {
 
     std::srand(35141);
 
-    // GTX 1650 prints 7.5 and 1024
     print_device_capabilities();
 
 #define SOLVE_EXERCISE(name, desc, code) do {\

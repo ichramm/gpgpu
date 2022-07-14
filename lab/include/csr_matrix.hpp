@@ -108,6 +108,7 @@ public:
     }
 };
 
+// ostream operator for CSRMatrix
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const CSRMatrix<T>& m) {
     auto w = os.width();

@@ -50,13 +50,7 @@ int lab_tests_controller(Callback c) {
             std::cout << "=================================" << std::endl;
             std::cout << "Starting test with " << row << " rows and non-null probability " << non_null_prob << std::endl;
             c(non_null_prob, row, row);
-
-            // FIXME: remove when done
-            break;
         }
-
-        // FIXME: remove when done
-        //break;
     }
 
     return 0;
