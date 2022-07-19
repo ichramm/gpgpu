@@ -242,6 +242,7 @@ void print_vector(const char *name, const T *vect, size_t size) {
     std::cout << ")" << std::endl;
 }
 
+
 template <typename value_type>
 bool validate_results(const char *name,
                       value_type *d_expected,
@@ -250,6 +251,15 @@ bool validate_results(const char *name,
                       bool silent = false,
                       bool print_vect = true)
 {
+#ifdef PROFILER
+    (void)name;
+    (void)d_expected;
+    (void)d_out;
+    (void)N;
+    (void)silent;
+    (void)print_vect;
+    return true;
+#else
     if (auto ndiff = gpu_compare_arrays(d_expected, d_out, N)) {
         value_type *h_vecY = new value_type[N];
         cudaMemcpy(h_vecY, d_out, sizeof(h_vecY), cudaMemcpyDeviceToHost);
@@ -265,6 +275,7 @@ bool validate_results(const char *name,
         }
         return true;
     }
+#endif
 }
 
 #endif // UTILS_HPP__

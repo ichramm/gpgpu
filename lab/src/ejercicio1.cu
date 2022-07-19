@@ -266,6 +266,7 @@ void ejercicio1() {
             printf("> %f ms, stdev: %f, CV: %f\n", m.mean(), m.stdev(), m.cv());
         };
 
+#ifndef PROFILER
         run_kernel("ser_spmv_kernel_host", [&]() {
             ser_spmv_kernel_host(mat, h_vecX.data(), h_vecY.data());
         }, nullptr, 1);
@@ -277,6 +278,7 @@ void ejercicio1() {
         }, nullptr, 1);
         // assume result of serial operation as ground truth
         CUDA_CHK(cudaMemcpy(d_expectedResult.get(), d_vecY.get(), sizeof(value_type)*rows, cudaMemcpyDeviceToDevice));
+#endif
 
         run_kernel("par_spmv_kernel1", [&]() {
             dim3 dimGrid{ceilx((double)rows/BLOCK_SIZE)};

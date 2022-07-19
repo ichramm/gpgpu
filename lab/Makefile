@@ -69,7 +69,7 @@ run: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" $(shell readlink -f $(OUTPUT_FILE)) $(ARGS)
 
 .PHONY: prof
-prof: NVCCFLAGS:=$(NVCCFLAGS) -DBENCH_TIMES=1
+prof: NVCCFLAGS:=$(NVCCFLAGS) -DBENCH_TIMES=1 -DPROFILER=1
 prof: build
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" nvprof \
 	-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency,shared_efficiency \
