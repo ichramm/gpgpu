@@ -1,0 +1,222 @@
+Using cuda compiler /usr/local/cuda/bin/nvcc
+rm -vf ./build/objs/*.o ./build/objs/*.obj
+removed ‘./build/objs/main.o’
+removed ‘./build/objs/ejercicio1.obj’
+removed ‘./build/objs/ejercicio2.obj’
+removed ‘./build/objs/ejercicio3.obj’
+rm -vf ./build/bin/lab
+removed ‘./build/bin/lab’
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -I./include "src/main.cpp" -o "./build/objs/main.o"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -I./include "src/ejercicio1.cu" -o "./build/objs/ejercicio1.obj"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -I./include "src/ejercicio2.cu" -o "./build/objs/ejercicio2.obj"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -I./include "src/ejercicio3.cu" -o "./build/objs/ejercicio3.obj"
+/usr/local/cuda/bin/nvcc -g -O3 -lineinfo ./build/objs/main.o ./build/objs/ejercicio1.obj ./build/objs/ejercicio2.obj ./build/objs/ejercicio3.obj -L/usr/local/cuda/lib64 -lcurand -lcusparse -o ./build/bin/lab
+LD_LIBRARY_PATH=":/usr/local/cuda/lib64" /clusteruy/home/gpgpu10/lab/build/bin/lab 
+Device capability: 6.0, MPs: 3584, Warp Size: 32
+---------- Begin Ejercicio 1:
+Matrix:
+  1   0   0   0   0 
+  0   2   3   0   4 
+  0   0   0   0   0 
+  0   5   6   7   8 
+  0   0   0   9   0 
+  0  10   0   0  11 
+vectX: (1, 2, 1, 1, 1)
+vectY: (1, 11, 0, 31, 9, 31)
+ser_spmv_kernel_device: OK
+par_spmv_kernel1: OK
+par_spmv_kernel2: OK
+par_spmv_kernel3: OK
+par_spmv_kernel4: OK
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+---------------------
+ser_spmv_kernel_host
+> 1.544922 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+ser_spmv_kernel_device
+> 89.508057 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel1
+par_spmv_kernel1: OK
+> 0.134702 ms, stdev: 0.000107, CV: 0.000794
+---------------------
+par_spmv_kernel2
+par_spmv_kernel2: OK
+> 1.103394 ms, stdev: 0.005149, CV: 0.004666
+---------------------
+par_spmv_kernel3
+par_spmv_kernel3: OK
+> 0.110261 ms, stdev: 0.000054, CV: 0.000490
+---------------------
+par_spmv_kernel4
+par_spmv_kernel4: OK
+> 0.054614 ms, stdev: 0.000066, CV: 0.001213
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+---------------------
+ser_spmv_kernel_host
+> 5.734131 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+ser_spmv_kernel_device
+> 406.065918 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel1
+par_spmv_kernel1: OK
+> 0.592122 ms, stdev: 0.000346, CV: 0.000584
+---------------------
+par_spmv_kernel2
+par_spmv_kernel2: OK
+> 4.676782 ms, stdev: 0.000154, CV: 0.000033
+---------------------
+par_spmv_kernel3
+par_spmv_kernel3: OK
+> 0.171875 ms, stdev: 0.000123, CV: 0.000716
+---------------------
+par_spmv_kernel4
+par_spmv_kernel4: OK
+> 0.151201 ms, stdev: 0.000104, CV: 0.000688
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+---------------------
+ser_spmv_kernel_host
+> 4.836914 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+ser_spmv_kernel_device
+> 338.097168 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel1
+par_spmv_kernel1: OK
+> 0.833320 ms, stdev: 0.000249, CV: 0.000299
+---------------------
+par_spmv_kernel2
+par_spmv_kernel2: OK
+> 6.169797 ms, stdev: 0.002193, CV: 0.000355
+---------------------
+par_spmv_kernel3
+par_spmv_kernel3: OK
+> 0.229392 ms, stdev: 0.000088, CV: 0.000385
+---------------------
+par_spmv_kernel4
+par_spmv_kernel4: OK
+> 0.180186 ms, stdev: 0.000105, CV: 0.000580
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+---------------------
+ser_spmv_kernel_host
+> 23.291992 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+ser_spmv_kernel_device
+> 1611.824219 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel1
+par_spmv_kernel1: OK
+> 4.151272 ms, stdev: 0.000833, CV: 0.000201
+---------------------
+par_spmv_kernel2
+par_spmv_kernel2: 2 differences found
+> 9.163086 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel3
+par_spmv_kernel3: 2 differences found
+> 0.603027 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel4
+par_spmv_kernel4: 2 differences found
+> 0.603027 ms, stdev: 0.000000, CV: 0.000000
+---------- End Ejercicio 1 ----------
+---------- Begin Ejercicio 2:
+Matrix:
+  1   0   0   0   0   0 
+  0   2   3   0   4   0 
+  0   0   0   0   0   0 
+  0   5   0   0   6   7 
+  0   0   9  10   0   0 
+  0   8  11  12   0   0 
+vectX: (1, 1, 2, 1, 1, 2)
+vectY: (1, 12, 0, 25, 28, 42)
+par_bl_spmv_kernel1: OK
+par_bl_spmv_kernel2: OK
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+---------------------
+ser_bl_spmv_kernel_host
+> 0.252930 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+par_bl_spmv_kernel1 (1 blocks per block-row): OK
+> 0.017612 ms, stdev: 0.000546, CV: 0.030985
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+par_bl_spmv_kernel2 (1 blocks per block-row): OK
+> 0.016821 ms, stdev: 0.000063, CV: 0.003762
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+par_bl_spmv_kernel3 (1 blocks per block-row): OK
+> 0.017029 ms, stdev: 0.000140, CV: 0.008243
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+---------------------
+ser_bl_spmv_kernel_host
+> 0.074951 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+par_bl_spmv_kernel1 (1 blocks per block-row): OK
+> 0.016973 ms, stdev: 0.000129, CV: 0.007577
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+par_bl_spmv_kernel2 (1 blocks per block-row): OK
+> 0.017256 ms, stdev: 0.000165, CV: 0.009541
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+par_bl_spmv_kernel3 (1 blocks per block-row): OK
+> 0.016667 ms, stdev: 0.000094, CV: 0.005621
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+---------------------
+ser_bl_spmv_kernel_host
+> 0.485107 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+par_bl_spmv_kernel1 (1 blocks per block-row): OK
+> 0.025327 ms, stdev: 0.000223, CV: 0.008811
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+par_bl_spmv_kernel2 (1 blocks per block-row): OK
+> 0.024890 ms, stdev: 0.000048, CV: 0.001919
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+par_bl_spmv_kernel3 (1 blocks per block-row): OK
+> 0.024690 ms, stdev: 0.000051, CV: 0.002059
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+---------------------
+ser_bl_spmv_kernel_host
+> 0.142090 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+par_bl_spmv_kernel1 (1 blocks per block-row): OK
+> 0.024873 ms, stdev: 0.000136, CV: 0.005450
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+par_bl_spmv_kernel2 (1 blocks per block-row): OK
+> 0.024788 ms, stdev: 0.000053, CV: 0.002139
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+par_bl_spmv_kernel3 (1 blocks per block-row): OK
+> 0.024878 ms, stdev: 0.000058, CV: 0.002328
+---------- End Ejercicio 2 ----------
+---------- Begin Ejercicio 3:
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+> 0.052219 ms, stdev: 0.000155, CV: 0.002978
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+> 0.170891 ms, stdev: 0.000186, CV: 0.001087
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+> 0.174883 ms, stdev: 0.000146, CV: 0.000838
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+> 0.689717 ms, stdev: 0.000279, CV: 0.000405
+---------- End Ejercicio 3 ----------
