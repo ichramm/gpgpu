@@ -1,0 +1,237 @@
+Using cuda compiler /usr/local/cuda/bin/nvcc
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -DBENCH_TIMES=1 -DPROFILER=1 -I./include "src/main.cpp" -o "./build/objs/main.o"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -DBENCH_TIMES=1 -DPROFILER=1 -I./include "src/ejercicio1.cu" -o "./build/objs/ejercicio1.obj"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -DBENCH_TIMES=1 -DPROFILER=1 -I./include "src/ejercicio2.cu" -o "./build/objs/ejercicio2.obj"
+/usr/local/cuda/bin/nvcc  -g -std=c++11 -x cu -dc --compiler-options -Wall --compiler-options -Wextra -O3 -lineinfo -DBENCH_TIMES=1 -DPROFILER=1 -I./include "src/ejercicio3.cu" -o "./build/objs/ejercicio3.obj"
+/usr/local/cuda/bin/nvcc -g -O3 -lineinfo ./build/objs/main.o ./build/objs/ejercicio1.obj ./build/objs/ejercicio2.obj ./build/objs/ejercicio3.obj -L/usr/local/cuda/lib64 -lcurand -lcusparse -o ./build/bin/lab
+LD_LIBRARY_PATH=":/usr/local/cuda/lib64" nvprof \
+-m gld_transactions,gld_efficiency,gst_transactions,gst_efficiency,shared_efficiency \
+/clusteruy/home/gpgpu10/lab/build/bin/lab 
+==39042== NVPROF is profiling process 39042, command: /clusteruy/home/gpgpu10/lab/build/bin/lab
+Device capability: 6.0, MPs: 3584, Warp Size: 32
+---------- Begin Ejercicio 1:
+Matrix:
+  1   0   0   0   0 
+  0   2   3   0   4 
+  0   0   0   0   0 
+  0   5   6   7   8 
+  0   0   0   9   0 
+  0  10   0   0  11 
+vectX: (1, 2, 1, 1, 1)
+vectY: (1, 11, 0, 31, 9, 31)
+==39042== Some kernel(s) will be replayed on device 0 in order to collect all events/metrics.
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+---------------------
+par_spmv_kernel1
+> 100.126953 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel2
+> 103.393799 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel3
+> 100.545166 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel4
+> 94.368896 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+---------------------
+par_spmv_kernel1
+> 118.965820 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel2
+> 150.593994 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel3
+> 109.815918 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel4
+> 104.354980 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+---------------------
+par_spmv_kernel1
+> 115.744873 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel2
+> 167.368164 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel3
+> 118.764893 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel4
+> 101.841064 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+---------------------
+par_spmv_kernel1
+> 188.010986 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel2
+> 273.835938 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel3
+> 144.433105 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_spmv_kernel4
+> 132.562012 ms, stdev: 0.000000, CV: 0.000000
+---------- End Ejercicio 1 ----------
+---------- Begin Ejercicio 2:
+Matrix:
+  1   0   0   0   0   0 
+  0   2   3   0   4   0 
+  0   0   0   0   0   0 
+  0   5   0   0   6   7 
+  0   0   9  10   0   0 
+  0   8  11  12   0   0 
+vectX: (1, 1, 2, 1, 1, 2)
+vectY: (1, 12, 0, 25, 28, 42)
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+---------------------
+ser_bl_spmv_kernel_host
+> 0.066162 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+> 94.489014 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+> 93.594971 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+> 90.215088 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+---------------------
+ser_bl_spmv_kernel_host
+> 0.074219 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+> 96.694092 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+> 96.341064 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+> 98.883057 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+---------------------
+ser_bl_spmv_kernel_host
+> 0.357910 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+> 100.085938 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+> 100.829102 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+> 100.026123 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+---------------------
+ser_bl_spmv_kernel_host
+> 0.149902 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel1 (1 blocks per block-row)
+> 110.035889 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel2 (1 blocks per block-row)
+> 118.105957 ms, stdev: 0.000000, CV: 0.000000
+---------------------
+par_bl_spmv_kernel3 (1 blocks per block-row)
+> 113.620117 ms, stdev: 0.000000, CV: 0.000000
+---------- End Ejercicio 2 ----------
+---------- Begin Ejercicio 3:
+=================================
+Starting test with 10000 rows and non-null probability 0.01
+> 116.340088 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 10000 rows and non-null probability 0.05
+> 132.864014 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.01
+> 122.795898 ms, stdev: 0.000000, CV: 0.000000
+=================================
+Starting test with 20000 rows and non-null probability 0.05
+==39042== Profiling application: /clusteruy/home/gpgpu10/lab/build/bin/lab
+> 179.503906 ms, stdev: 0.000000, CV: 0.000000
+---------- End Ejercicio 3 ----------
+==39042== Profiling result:
+==39042== Metric result:
+Invocations                               Metric Name                        Metric Description         Min         Max         Avg
+Device "Tesla P100-PCIE-12GB (0)"
+    Kernel: void cmp_kernelT<float>(float*, float*, unsigned int, unsigned int*)
+          1                          gld_transactions                  Global Load Transactions          18          18          18
+          1                            gld_efficiency             Global Memory Load Efficiency      75.00%      75.00%      75.00%
+          1                          gst_transactions                 Global Store Transactions           0           0           0
+          1                            gst_efficiency            Global Memory Store Efficiency       0.00%       0.00%       0.00%
+          1                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: void par_bl_spmv_kernel3<float, unsigned long=2>(BLMatrix<float, unsigned long=2>::DeviceStruct, float const *, float*)
+          4                          gld_transactions                  Global Load Transactions      160002      320002      240002
+          4                            gld_efficiency             Global Memory Load Efficiency      14.32%      14.50%      14.41%
+          4                          gst_transactions                 Global Store Transactions           0           0           0
+          4                            gst_efficiency            Global Memory Store Efficiency       0.00%       0.00%       0.00%
+          4                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: void cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=32, unsigned int=16>, float, int, float, float>(bool=0, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=32, unsigned int=16>, float, int, float, float>, bool=1 const *, bool=1 const , bool=0, bool=0, int, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=32, unsigned int=16>, float, int, float, float> const *, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=32, unsigned int=16>, float, int, float, float> const , unsigned int=32 const *, unsigned int=32 const , unsigned int=16*)
+          1                          gld_transactions                  Global Load Transactions     2229358     2229358     2229358
+          1                            gld_efficiency             Global Memory Load Efficiency      28.29%      28.29%      28.29%
+          1                          gst_transactions                 Global Store Transactions       10000       10000       10000
+          1                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          1                         shared_efficiency                  Shared Memory Efficiency       5.00%       5.00%       5.00%
+    Kernel: void par_bl_spmv_kernel1<float, unsigned long=2>(BLMatrix<float, unsigned long=2>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         194      320002      192040
+          5                            gld_efficiency             Global Memory Load Efficiency      14.32%      17.07%      14.94%
+          5                          gst_transactions                 Global Store Transactions           0           0           0
+          5                            gst_efficiency            Global Memory Store Efficiency       0.00%       0.00%       0.00%
+          5                         shared_efficiency                  Shared Memory Efficiency       1.24%       2.23%       2.02%
+    Kernel: ser_spmv_kernel_device(CSRMatrix<float>::DeviceStruct, float const *, float*)
+          1                          gld_transactions                  Global Load Transactions         182         182         182
+          1                            gld_efficiency             Global Memory Load Efficiency      12.50%      12.50%      12.50%
+          1                          gst_transactions                 Global Store Transactions           6           6           6
+          1                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          1                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: par_spmv_kernel1(CSRMatrix<float>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         126    31570450     9666710
+          5                            gld_efficiency             Global Memory Load Efficiency      12.70%      20.37%      14.35%
+          5                          gst_transactions                 Global Store Transactions           1        2500        1500
+          5                            gst_efficiency            Global Memory Store Efficiency      75.00%     100.00%      95.00%
+          5                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: par_spmv_kernel2(CSRMatrix<float>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         254    35288746    12170279
+          5                            gld_efficiency             Global Memory Load Efficiency      20.83%      32.28%      28.19%
+          5                          gst_transactions                 Global Store Transactions           6       20000       12001
+          5                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          5                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.05%       0.01%
+    Kernel: par_spmv_kernel3(CSRMatrix<float>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         254    35288746    12170279
+          5                            gld_efficiency             Global Memory Load Efficiency      20.83%      32.28%      28.19%
+          5                          gst_transactions                 Global Store Transactions           6       20000       12001
+          5                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          5                         shared_efficiency                  Shared Memory Efficiency      49.76%      70.97%      66.73%
+    Kernel: par_spmv_kernel4(CSRMatrix<float>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         254    31232406     9711465
+          5                            gld_efficiency             Global Memory Load Efficiency      20.83%      32.45%      28.61%
+          5                          gst_transactions                 Global Store Transactions           6       20000       12001
+          5                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          5                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: void par_bl_spmv_kernel2<float, unsigned long=2>(BLMatrix<float, unsigned long=2>::DeviceStruct, float const *, float*)
+          5                          gld_transactions                  Global Load Transactions         194      320002      192040
+          5                            gld_efficiency             Global Memory Load Efficiency      14.32%      17.07%      14.94%
+          5                          gst_transactions                 Global Store Transactions           0           0           0
+          5                            gst_efficiency            Global Memory Store Efficiency       0.00%       0.00%       0.00%
+          5                         shared_efficiency                  Shared Memory Efficiency       6.26%       6.49%       6.34%
+    Kernel: void cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=0, bool=0, unsigned int=32, unsigned int=32>, float, int, float, float>(bool=0, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=0, bool=0, unsigned int=32, unsigned int=32>, float, int, float, float>, bool=0 const *, bool=0 const , bool=0, bool=0, int, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=0, bool=0, unsigned int=32, unsigned int=32>, float, int, float, float> const *, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=0, bool=0, unsigned int=32, unsigned int=32>, float, int, float, float> const , unsigned int=32 const *, unsigned int=32 const , unsigned int=32*)
+          3                          gld_transactions                  Global Load Transactions     6999786    34856262    17030927
+          3                            gld_efficiency             Global Memory Load Efficiency      29.15%      31.90%      30.89%
+          3                          gst_transactions                 Global Store Transactions       10000       20000       16666
+          3                            gst_efficiency            Global Memory Store Efficiency      12.50%      12.50%      12.50%
+          3                         shared_efficiency                  Shared Memory Efficiency       0.00%       0.00%       0.00%
+    Kernel: void cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=1, unsigned int=16>, float, int, float, float>(bool=0, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=1, unsigned int=16>, float, int, float, float>, bool=1 const *, bool=1 const , bool=0, bool=0, int, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=1, unsigned int=16>, float, int, float, float> const *, cusparse::csrmv_kernel<cusparse::CsrMVPolicy<unsigned int=128, bool=1, bool=0, unsigned int=1, unsigned int=16>, float, int, float, float> const , unsigned int=1 const *, unsigned int=1 const , unsigned int=16*)
+          1                          gld_transactions                  Global Load Transactions         138         138         138
+          1                            gld_efficiency             Global Memory Load Efficiency      18.97%      18.97%      18.97%
+          1                          gst_transactions                 Global Store Transactions           1           1           1
+          1                            gst_efficiency            Global Memory Store Efficiency      75.00%      75.00%      75.00%
+          1                         shared_efficiency                  Shared Memory Efficiency       5.00%       5.00%       5.00%
